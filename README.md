@@ -130,6 +130,10 @@ The self-calibration process may fail because the homography error is higher tha
 
 Are you experiencing problems? Do you want to give us a comment? Do you need to get in touch with us? Please contact us! To do so, we ask you to use the [Issues section](https://github.com/Ulises-ICM-UPC/UCalib/issues) instead of emailing us.
 
+## Contributions
+
+Contributions to this project are welcome. To do a clean pull request, please follow these [guidelines](https://github.com/MarcDiethelm/contributing/blob/master/README.md)
+
 ## License
 
 UCalib is released under a [GPLv3 license](https://github.com/Ulises-ICM-UPC/UCalib/blob/main/LICENSE). If you use UCalib in an academic work, please cite:
@@ -146,4 +150,3 @@ UCalib is released under a [GPLv3 license](https://github.com/Ulises-ICM-UPC/UCa
       ISSN = {2072-4292},
       DOI = {10.3390/rs11232722}
       }
-  
