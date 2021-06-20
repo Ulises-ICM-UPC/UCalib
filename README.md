@@ -90,7 +90,7 @@ As a result of the calibration, the calibration file `<basisImage>cal.txt` is ge
 
 The different calibration files `*cal.txt` differ only in the angles of the camera orientation  (`ph`, `sg`, `ta`) and the calibration error (`errorT`).
 
-***info mesages error***
+***info mesages error***_GONZALO_
 
 ## Image calibration
 
