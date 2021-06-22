@@ -90,8 +90,8 @@ As a result of the calibration, the calibration file `<basisImage>cal.txt` is ge
 |:--|:--:|:--:|
 | Camera position coordinates | `xc`, `yc`, `zc` | _m_ |
 | Camera orientation angles | `ph`, `sg`, `ta` | _rad_ |
-| Lens radial distortion (quadratic, parabolic) | `k1a`, `k2a` | _-_ |
-| Lens tangential distortion (quadratic, parabolic) | `p1a`, `p2a` | _-_ |
+| Lens radial distortion (parabolic, quartic) | `k1a`, `k2a` | _-_ |
+| Lens tangential distortion (parabolic, quartic) | `p1a`, `p2a` | _-_ |
 | Pixel size | `sc`, `sr` | _-_ |
 | Decentering | `oc`, `rr` | _pixel_ |
 | Image size | `nc`, `nr` | _pixel_ |
