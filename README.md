@@ -8,7 +8,7 @@ The calibration algorithm assumes that the camera position and the intrinsic par
 > *Simarro, G.; Calvete, D.; Soutoa, P. UCalib: Cameras autocalibration on coastal videomonitoring systems. Submitted to Remote Sens. 2021*
 
 The automatic calibration process consists of two steps:
- 1. [Manual calibration of the basis](#base-calibration)
+ 1. [Manual calibration of the basis](#basis-calibration)
  2. [Automatic image calibration](#automatic-image-calibration)
 
 ### Requirements and project structure
