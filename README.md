@@ -5,11 +5,11 @@
 
 ### Description
 The calibration algorithm assumes that the camera position and the intrinsic parameters of the camera remains unchanged. The result of the process is a common position and intrinsic camera parameters for all images, and the orientation of the cameras for each of the images. The development of this software is suitable for Argus-type video monitoring stations. Details about the algorithm and methodology are described in
-> *Simarro, G.; Calvete, D.; Luque, P.; Orfila, A.; Ribas, F. UBathy: A New Approach for Bathymetric Inversion from Video Imagery. Remote Sens. 2019, 11, 2722. https://doi.org/10.3390/rs11232722*
+> *Simarro, G.; Calvete, D.; Soutoa, P. UCalib: Cameras autocalibration on coastal videomonitoring systems. Submitted to Remote Sens. 2021*
 
 The automatic calibration process consists of two steps:
- 1. [Manual calibration of the base](#base-calibration)
- 2. [Automatic image calibration](#image-calibration)
+ 1. [Manual calibration of the basis](#base-calibration)
+ 2. [Automatic image calibration](#automatic-image-calibration)
 
 ### Requirements and project structure
 To run the software it is necessary to have Python (3.8) and install the following dependencies:
@@ -31,18 +31,13 @@ The structure of the project is the following:
   * `image000001.png`
   * . . .
 * **`ucalib`**
-  * `basis.py`
-  * `images.py`
-  * `ulises.py`
+  * `ucalib.py`
 
-The local modules of `UCalib` are located in the **`ucalib`** folder:
-- `basis.py`: Contains the main function for manual base calibration. 
-- `images.py`: Contains the main function for automatic image calibration of the base. 
-- `ulyses.py`: Contains core functions.
+The local modules of `UCalib` are located in the **`ucalib`** folder.
 
 To run a demo with the images in folder **`basis`** and **`imagesToAutoCalibrate`** using a Jupyter Notebook we provide the file `example_notebook.ipynb`. For experienced users, the `example.py` file can be run in a terminal. 
 
-## Base calibration
+## Basis calibration
 To manually calibrate the images selected for the basis, placed in the folder **`basis`**,  it is necessary that each image `<basisImage>.png` is supplied with a file containing the Ground Control Points (GCP) and, optionally, the Horizon Points (HP) together with the water surface level. The structure of each of these files is the following:
 * `<basisImage>cdg.txt`: For each GCP one line with 
 >`pixel-column`, `pixel-row`, `x-coordinate`, `y-coordinate`, `z-coordinate`
@@ -58,7 +53,7 @@ Import `ucalib` module:
 
 
 ```python
-from ucalib import basis, images
+from ucalib import ucalib
 ```
 
 Set the folder path where files for calibrating the base are located:
@@ -68,11 +63,25 @@ Set the folder path where files for calibrating the base are located:
 pathFolderBasis = 'basis'
 ```
 
+Set the value of the basis calibration parameter:
+
+|  | Parameter | Suggested value | Units |
+|:--|:--:|:--:|:--:|
+| Critical reprojection pixel error | `eCrit` | _5._ | _pixel_ |
+
+
 Run the calibration algorithm of the basis:
 
 
 ```python
-basis.nonlinearCalibrationOfBasis(pathFolderBasis)
+eCrit=5.
+```
+
+Run the calibration algorithm of the basis:
+
+
+```python
+ucalib.CalibrationOfBasis(pathFolderBasis,eCrit)
 ```
 
 As a result of the calibration, the calibration file `<basisImage>cal.txt` is generated in the **`basis`** directory for each of the images. This file contains the following parameters:
@@ -90,9 +99,9 @@ As a result of the calibration, the calibration file `<basisImage>cal.txt` is ge
 
 The different calibration files `*cal.txt` differ only in the angles of the camera orientation  (`ph`, `sg`, `ta`) and the calibration error (`errorT`).
 
-***info mesages error***_GONZALO_
+In case that for a certain image `<basisImage>.txt` the reprojection error of a GCP is higher than the error E, a message will appear suggesting to modify the values or to delete the point in the file `<basisImage>cdg.txt`. 
 
-## Image calibration
+## Automatic image calibration
 
 In this second step, each of the images in the folder **`imagesToAutoCalibrate`** will be automatically calibrated. Set the folder path where images to calibrate automatically are stored:
 
@@ -105,22 +114,22 @@ Set the values of the automatic image calibration parameters:
 
 |  | Parameter | Suggested value | Units |
 |:--|:--:|:--:|:--:|
+| Number of features to identify with ORB | `nORB` | _10000_ | _-_ |
 | Critical homography error | `fC` | _5._ | _pixel_ |
 | Critical number of pairs | `KC` | _4_ | _-_ |
-| Number of features to identify with ORB | `nORB` | _10000_ | _-_ |
 
 
 
 ```python
-fC, KC = 5., 4
 nORB = 10000
+fC, KC = 5., 4
 ```
 
 Run the algorithm to calibrate images automatically:
 
 
 ```python
-images.autoCalibration(pathFolderBasis,pathFolderImagesToAutoCalibrate,fC,KC,nORB)
+ucalib.AutoCalibrationOfImages(pathFolderBasis,pathFolderImagesToAutoCalibrate,nORB,fC,KC)
 ```
 
 For each of the images `<image>.png` in directory **`imagesToAutoCalibrate`**, a calibration file `<image>cal.txt` with the same characteristics as the one described above will be obtained.
@@ -128,7 +137,9 @@ The self-calibration process may fail because the homography error is higher tha
 
 ## Contact us
 
-Are you experiencing problems? Do you want to give us a comment? Do you need to get in touch with us? Please contact us! To do so, we ask you to use the [Issues section](https://github.com/Ulises-ICM-UPC/UCalib/issues) instead of emailing us.
+Are you experiencing problems? Do you want to give us a comment? Do you need to get in touch with us? Please contact us!
+
+To do so, we ask you to use the [Issues section](https://github.com/Ulises-ICM-UPC/UCalib/issues) instead of emailing us.
 
 ## Contributions
 
@@ -139,14 +150,15 @@ Contributions to this project are welcome. To do a clean pull request, please fo
 UCalib is released under a [GPLv3 license](https://github.com/Ulises-ICM-UPC/UCalib/blob/main/LICENSE). If you use UCalib in an academic work, please cite:
 
     @article{rs11232722,
-      AUTHOR = {Simarro, Gonzalo and Calvete, Daniel and Luque, Pau and Orfila, Alejandro and Ribas, Francesca},
-      TITLE = {UBathy: A New Approach for Bathymetric Inversion from Video Imagery},
+      AUTHOR = {Simarro, Gonzalo and Calvete, Daniel and Souto, Paola},
+      TITLE = {UCalib: Cameras autocalibration on coastal videomonitoring systems},
       JOURNAL = {Remote Sensing},
-      VOLUME = {11},
-      YEAR = {2019},
-      NUMBER = {23},
-      ARTICLE-NUMBER = {2722},
-      URL = {https://www.mdpi.com/2072-4292/11/23/2722},
-      ISSN = {2072-4292},
-      DOI = {10.3390/rs11232722}
+      VOLUME = {},
+      YEAR = {2021},
+      NUMBER = {},
+      ARTICLE-NUMBER = {},
+      URL = {},
+      ISSN = {},
+      DOI = {},
+      NOTE = {Submitted}
       }
