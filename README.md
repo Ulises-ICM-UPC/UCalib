@@ -149,7 +149,7 @@ Contributions to this project are welcome. To do a clean pull request, please fo
 
 UCalib is released under a [GPLv3 license](https://github.com/Ulises-ICM-UPC/UCalib/blob/main/LICENSE). If you use UCalib in an academic work, please cite:
 
-    @article{rs11232722,
+    @article{rs13116170,
       AUTHOR = {Simarro, Gonzalo and Calvete, Daniel and Souto, Paola},
       TITLE = {UCalib: Cameras autocalibration on coastal videomonitoring systems},
       JOURNAL = {Remote Sensing},
