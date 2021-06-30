@@ -93,7 +93,7 @@ As a result of the calibration, the calibration file `<basisImage>cal.txt` is ge
 | Lens radial distortion (parabolic, quartic) | `k1a`, `k2a` | _-_ |
 | Lens tangential distortion (parabolic, quartic) | `p1a`, `p2a` | _-_ |
 | Pixel size | `sc`, `sr` | _-_ |
-| Decentering | `oc`, `rr` | _pixel_ |
+| Decentering | `oc`, `or` | _pixel_ |
 | Image size | `nc`, `nr` | _pixel_ |
 | Calibration error | `errorT`| _pixel_ |
 
