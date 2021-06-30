@@ -133,7 +133,7 @@ ucalib.AutoCalibrationOfImages(pathFolderBasis,pathFolderImagesToAutoCalibrate,n
 ```
 
 For each of the images `<image>.png` in directory **`imagesToAutoCalibrate`**, a calibration file `<image>cal.txt` with the same characteristics as the one described above will be obtained.
-The self-calibration process may fail because the homography error is higher than the one set by the parameter fC, the number of pairs is lower than the critical value KC or ORF cannot identify pairs in the image. In any of these cases it is reported that the image  `<image>.png` is _not automatically calibratable_.
+The self-calibration process may fail because the homography error is higher than the one set by the parameter fC, the number of pairs is lower than the critical value KC or ORB cannot identify pairs in the image. In any of these cases it is reported that the image  `<image>.png` is _not automatically calibratable_.
 
 ## Contact us
 
