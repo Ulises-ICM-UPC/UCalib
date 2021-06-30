@@ -1,5 +1,5 @@
 '''
-Created on 2021 by Gonzalo Simarro and Daniel Calvete
+Created on 2021 by Gonzalo Simarro, Daniel Calvete and Paola Souto
 '''
 #
 import copy
