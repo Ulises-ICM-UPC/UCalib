@@ -99,7 +99,7 @@ As a result of the calibration, the calibration file `<basisImage>cal.txt` is ge
 
 The different calibration files `*cal.txt` differ only in the angles of the camera orientation  (`ph`, `sg`, `ta`) and the calibration error (`errorT`).
 
-In case that for a certain image `<basisImage>.txt` the reprojection error of a GCP is higher than the error eCrit, a message will appear suggesting to modify the values or to delete the point in the file `<basisImage>cdg.txt`. 
+In case that for a certain image `<basisImage>.txt` the reprojection error of a GCP is higher than the error `eCrit`, a message will appear suggesting to modify the values or to delete the point in the file `<basisImage>cdg.txt`. 
 
 ## Automatic image calibration
 
