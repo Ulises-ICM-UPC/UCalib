@@ -5,7 +5,7 @@
 
 ### Description
 The calibration algorithm assumes that the camera position and the intrinsic parameters of the camera remains unchanged. The result of the process is a common position and intrinsic camera parameters for all images, and the orientation of the cameras for each of the images. The development of this software is suitable for Argus-type video monitoring stations. Details about the algorithm and methodology are described in
-> *Simarro, G.; Calvete, D.; Soutoa, P. UCalib: Cameras autocalibration on coastal videomonitoring systems. Submitted to Remote Sens. 2021*
+> *Simarro, G.; Calvete, D.; Souto, P. UCalib: Cameras Autocalibration on Coastal Video Monitoring Systems. Remote Sens. 2021, 13, 2795. https://doi.org/10.3390/rs13142795*
 
 The automatic calibration process consists of two steps:
  1. [Manual calibration of the basis](#basis-calibration)
@@ -149,16 +149,16 @@ Contributions to this project are welcome. To do a clean pull request, please fo
 
 UCalib is released under a [GPLv3 license](https://github.com/Ulises-ICM-UPC/UCalib/blob/main/LICENSE). If you use UCalib in an academic work, please cite:
 
-    @article{rs13116170,
+    @Article{rs13142795,
       AUTHOR = {Simarro, Gonzalo and Calvete, Daniel and Souto, Paola},
-      TITLE = {UCalib: Cameras autocalibration on coastal videomonitoring systems},
+      TITLE = {UCalib: Cameras Autocalibration on Coastal Video Monitoring Systems},
       JOURNAL = {Remote Sensing},
-      VOLUME = {},
+      VOLUME = {13},
       YEAR = {2021},
-      NUMBER = {},
-      ARTICLE-NUMBER = {},
-      URL = {},
-      ISSN = {},
-      DOI = {},
-      NOTE = {Submitted}
+      NUMBER = {14},
+      ARTICLE-NUMBER = {2795},
+      URL = {https://www.mdpi.com/2072-4292/13/14/2795},
+      ISSN = {2072-4292},
+      DOI = {10.3390/rs13142795}
       }
+
