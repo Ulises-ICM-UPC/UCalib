@@ -70,9 +70,6 @@ Set the value of the basis calibration parameter:
 | Critical reprojection pixel error | `eCrit` | _5._ | _pixel_ |
 
 
-Run the calibration algorithm of the basis:
-
-
 ```python
 eCrit=5.
 ```
