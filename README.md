@@ -8,16 +8,16 @@ The calibration algorithm assumes that the camera position and the intrinsic par
 
 The automatic calibration process consists of two steps:
 
- 1. [Basis calibration](#basis-calibration)
- 2. [Automatic image calibration](#automatic-image-calibration)
+1. [Basis calibration](#basis-calibration)
+2. [Automatic image calibration](#automatic-image-calibration)
 
 Further UCalib allows to generate planviews for the calibrated images:
 
- 3. [Planview generation](#planviews)
+3. [Planview generation](#planviews)
  
 A code to verify the quality of the GCPs used in the manual calibration of the basis images is also provided:
 
- 4. [Check GCP for basis calibration](#gcp-check)
+4. [Check GCP for basis calibration](#gcp-check)
 
 ### Requirements and project structure
 To run the software it is necessary to have Python (3.8) and install the following dependencies:
