@@ -7,13 +7,16 @@ The calibration algorithm assumes that the camera position and the intrinsic par
 > *Simarro, G.; Calvete, D.; Souto, P. UCalib: Cameras Autocalibration on Coastal Video Monitoring Systems. Remote Sens. 2021, 13, 2795. https://doi.org/10.3390/rs13142795*
 
 The automatic calibration process consists of two steps:
+
  1. [Basis calibration](#basis-calibration)
  2. [Automatic image calibration](#automatic-image-calibration)
 
 Further UCalib allows to generate planviews for the calibrated images:
+
  3. [Planview generation](#planviews)
  
 A code to verify the quality of the GCPs used in the manual calibration of the basis images is also provided:
+
  4. [Check GCP for basis calibration](#gcp-check)
 
 ### Requirements and project structure
