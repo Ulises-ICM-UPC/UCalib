@@ -3,21 +3,18 @@
 `UCalib` is an open source software written in Python for automatic image calibration of camera orientation from a set of images that are manually calibrated.
 
 ### Description
-The calibration algorithm assumes that the camera position and the intrinsic parameters of the camera remains unchanged. The result of the process is a common position and intrinsic camera parameters for all images, and the orientation of the cameras for each of the images. In addition, planviews can be generated for each image. The development of this software is suitable for Argus-type video monitoring stations. Details about the algorithm and methodology are described in
+The calibration algorithm assumes that the camera position and the intrinsic parameters of the camera remains unchanged. The result of the process is a common position and intrinsic camera parameters for all images, and the orientation of the cameras for each of the images. In addition, planviews can be generated for each image.  The development of this software is suitable for Argus-type video monitoring stations. Details about the algorithm and methodology are described in
 > *Simarro, G.; Calvete, D.; Souto, P. UCalib: Cameras Autocalibration on Coastal Video Monitoring Systems. Remote Sens. 2021, 13, 2795. https://doi.org/10.3390/rs13142795*
 
 The automatic calibration process consists of two steps:
-
-1. [Basis calibration](#basis-calibration)
-2. [Automatic image calibration](#automatic-image-calibration)
+ 1. [Basis calibration](#basis-calibration)
+ 2. [Automatic image calibration](#automatic-image-calibration)
 
 Further UCalib allows to generate planviews for the calibrated images:
-
-3. [Planview generation](#planviews)
+ 3. [Planview generation](#planviews)
  
 A code to verify the quality of the GCPs used in the manual calibration of the basis images is also provided:
-
-4. [Check GCP for basis calibration](#gcp-check)
+ 4. [Check GCP for basis calibration](#gcp-check)
 
 ### Requirements and project structure
 To run the software it is necessary to have Python (3.8) and install the following dependencies:
@@ -68,9 +65,9 @@ To run the demo in the folder **`example`** with the basis of images in **`basis
 
 ## Basis calibration
 To manually calibrate the images selected for the basis, placed in the folder **`basis`**,  it is necessary that each image `<basisImage>.png` is supplied with a file containing the Ground Control Points (GCP) and, optionally, the Horizon Points (HP). The structure of each of these files is the following:
-* `<basisImage>cdg.txt`: For each GCP one line with 
+* `<basisImage>cdg.txt`: For each GCP one line with (minimum 6)
 >`pixel-column`, `pixel-row`, `x-coordinate`, `y-coordinate`, `z-coordinate`
-* `<basisImage>cdh.txt`: For each HP one line with
+* `<basisImage>cdh.txt`: For each HP one line with (minimum 3)
 >`pixel-column`, `pixel-row`
 
 Quantities must be separated by at least one blank space between them and the last record should not be continued with a newline (return).
@@ -158,11 +155,11 @@ As a result of the calibration, the calibration file `<basisImage>cal.txt` is ge
 | Image size | `nc`, `nr` | _pixel_ |
 | Calibration error | `errorT`| _pixel_ |
 
-The different calibration files `*cal.txt` differ only in the angles of the camera orientation  (`ph`, `sg`, `ta`) and the calibration error (`errorT`). A `<basisImage>cal0.txt` file with the initial calibration parameters for each image of the basis will also have been generated.
+The different calibration files `<basisImage>cal.txt` differ only in the angles of the camera orientation  (`ph`, `sg`, `ta`) and the calibration error (`errorT`). A `<basisImage>cal0.txt` file with the initial calibration parameters for each image of the basis will also have been generated.
 
 ## Automatic image calibration
 
-In this second step, each of the images in the folder **`images`** will be automatically calibrated. Set the folder path where images to calibrate automatically are stored. To facilitate the verification of the calibration of each image, images showing the reprojection of the GCPs and the horizon line can be generated. Set parameter `verbosePlot = True`, and to `False` otherwise. Images(`<images>cal_check.png`) will be placed on a **`TMP`** folder.
+In this second step, each of the images in the folder **`images`** will be automatically calibrated. Set the folder path where images to calibrate automatically are stored. To facilitate the verification of the calibration of each image, images showing the reprojection of the GCPs and the horizon line can be generated. Set parameter `verbosePlot = True`, and to `False` otherwise. Images (`<images>cal_check.png`) will be placed on a **`TMP`** folder.
 
 
 ```python
