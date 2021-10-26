@@ -3,7 +3,7 @@
 `UCalib` is an open source software written in Python for automatic image calibration of camera orientation from a set of images that are manually calibrated.
 
 ### Description
-The calibration algorithm assumes that the camera position and the intrinsic parameters of the camera remains unchanged. The result of the process is a common position and intrinsic camera parameters for all images, and the orientation of the cameras for each of the images. The development of this software is suitable for Argus-type video monitoring stations. Details about the algorithm and methodology are described in
+The calibration algorithm assumes that the camera position and the intrinsic parameters of the camera remains unchanged. The result of the process is a common position and intrinsic camera parameters for all images, and the orientation of the cameras for each of the images. In addition, planviews can be generated for each image. The development of this software is suitable for Argus-type video monitoring stations. Details about the algorithm and methodology are described in
 > *Simarro, G.; Calvete, D.; Souto, P. UCalib: Cameras Autocalibration on Coastal Video Monitoring Systems. Remote Sens. 2021, 13, 2795. https://doi.org/10.3390/rs13142795*
 
 The automatic calibration process consists of two steps:
