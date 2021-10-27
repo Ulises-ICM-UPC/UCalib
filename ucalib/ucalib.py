@@ -84,9 +84,15 @@ def CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathBasis, model, verbosePlo
         print('*** Choose one of the following calibration models: {:}'.format(list(model2SelectedVariablesKeys.keys()))); exit()
     #
     # load basis information
-    ncs, nrs, css, rss, xss, yss, zss, chss, rhss, allVariabless, mainSets, errorTs = [[] for item in range(12)]
-    fnsImages = sorted([item for item in os.listdir(pathBasis) if '.' in item and item[item.rfind('.')+1:] in ['jpeg', 'JPEG', 'jpg', 'JPG', 'png', 'PNG']])
-    for posFnImage, fnImage in enumerate(fnsImages):
+    ncs, nrs, css, rss, xss, yss, zss, chss, rhss, allVariabless, mainSets, errorTs, fnsImages = [[] for item in range(13)]
+    potentialFnsImages = sorted([item for item in os.listdir(pathBasis) if '.' in item and item[item.rfind('.')+1:] in ['jpeg', 'JPEG', 'jpg', 'JPG', 'png', 'PNG']])
+    for posFnImage, fnImage in enumerate(potentialFnsImages):
+        #
+        # check pathCal0Txt
+        pathCal0Txt = pathBasis + os.sep + fnImage[0:fnImage.rfind('.')] + 'cal0.txt'
+        if not os.path.exists(pathCal0Txt):
+            print('... image {:} ignored: no initial calibration available'.format(fnImage)); continue
+        fnsImages.append(fnImage)
         #
         # load image information and dataBasic
         if posFnImage == 0:
@@ -110,13 +116,14 @@ def CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathBasis, model, verbosePlo
         chss.append(chs); rhss.append(rhs)
         #
         # load allVariables, mainSet and errorT
-        pathCal0Txt = pathBasis + os.sep + fnImage[0:fnImage.rfind('.')] + 'cal0.txt'
         allVariables, nc, nr, errorT = ulises.ReadCalTxt(pathCal0Txt)
         mainSet = ulises.AllVariables2MainSet(allVariables, nc, nr, options={})
         allVariabless.append(allVariables); mainSets.append(mainSet); errorTs.append(errorT)
     #
     # obtain calibrations and write pathCalTxts forcing unique xc, yc, zc and intrinsic
-    if len(fnsImages) == 1:
+    if len(fnsImages) == 0:
+        print('*** no initial calibrations available'); exit()
+    elif len(fnsImages) == 1:
         pathCal0Txt = pathBasis + os.sep + fnsImages[0][0:fnsImages[0].rfind('.')] + 'cal0.txt'
         pathCalTxt = pathBasis + os.sep + fnsImages[0][0:fnsImages[0].rfind('.')] + 'cal.txt'
         shutil.copyfile(pathCal0Txt, pathCalTxt)

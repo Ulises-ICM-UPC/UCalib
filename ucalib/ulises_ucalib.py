@@ -1,5 +1,5 @@
 #
-# Thu Oct 21 09:49:25 2021, extract from Ulises by Gonzalo Simarro
+# Thu Oct 27 17:32:25 2021, extract from Ulises by Gonzalo Simarro
 #
 import cv2
 import copy
@@ -10,21 +10,28 @@ import random
 from scipy import optimize
 import time
 #
-def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500 # *** 
+def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500
+    #
     ''' comments:
     .- input allVariables is a 14-float-ndarray (xc, yc, zc, ph, sg, ta, k1a, k2a, p1a, p2a, sca, sra, oc, or)
     .- input nc and nr are integers or floats
     .- output mainSet is a dictionary
     '''
+    #
+    # complete options
     keys, defaultValues = ['orderOfTheHorizonPolynomial', 'radiusOfEarth'], [5, 6.371e+6]
     options = CompleteADictionary(options, keys, defaultValues)
+    #
     def MainSet2HorizonLine(mainSet): # 202109141400
         ''' comments:
         .- input mainSet is a dictionary
         .- output horizonLine is a dictionary
         '''
+        # set z0 (actually irrelevant)
         z0 = 0.
+        # initialize horizonLine with nc and nr
         horizonLine = {key:mainSet[key] for key in ['nc', 'nr']}
+        # obtain horizon line in cU and rU: preliminaries
         TMP = np.sqrt(mainSet['ef'][0] ** 2 + mainSet['ef'][1] ** 2)
         efxp = mainSet['ef'][0] / TMP
         efyp = mainSet['ef'][1] / TMP
@@ -33,6 +40,7 @@ def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500 # ***
         au = b * (efxp * mainSet['eu'][0] + efyp * mainSet['eu'][1]) - (a + mainSet['zc']) * mainSet['eu'][2]
         av = b * (efxp * mainSet['ev'][0] + efyp * mainSet['ev'][1]) - (a + mainSet['zc']) * mainSet['ev'][2]
         af = b * (efxp * mainSet['ef'][0] + efyp * mainSet['ef'][1]) - (a + mainSet['zc']) * mainSet['ef'][2]
+        # obtain horizon line in cU and rU: ccUh1 * cUh + crUh1 * rUh + ccUh0 = 0; rUh = -(ccUh1 * cUh + ccUh0) / crUh1
         ccUh1 = + af * mainSet['eu'][2] * mainSet['sca']
         crUh1 = + af * mainSet['ev'][2] * mainSet['sra']
         ccUh0 = - au * mainSet['eu'][2] - av * mainSet['evz'] - ccUh1 * mainSet['oc'] - crUh1 * mainSet['or']
@@ -41,6 +49,7 @@ def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500 # ***
         horizonLine['crUh1'] = crUh1 / TMP
         horizonLine['ccUh0'] = ccUh0 / TMP
         horizonLine['crUh1'] = ClipWithSign(horizonLine['crUh1'], 1.e-8, 1.e+8) 
+        # obtain horizon line in cD and rD: rDh = ccDh[0] + ccDh[1] * cDh + ccDh[2] * cDh ** 2 + ...
         cUhMin = -0.1 * mainSet['nc']
         cUhMax = +1.1 * mainSet['nc']
         cUhs = np.linspace(cUhMin, cUhMax, 31, endpoint=True)
@@ -50,13 +59,23 @@ def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500 # ***
         for n in range(1, mainSet['orderOfTheHorizonPolynomial'] + 1):
             A[:, n] = cDhs ** n
         b = rDhs
-        horizonLine['ccDh'] = np.linalg.solve(np.dot(np.transpose(A), A), np.dot(np.transpose(A), b))
-        if np.max(np.abs(b - np.dot(A, horizonLine['ccDh']))) > 5e-1: # IMP* WATCH OUT
+        try:
+            horizonLine['ccDh'] = np.linalg.solve(np.dot(np.transpose(A), A), np.dot(np.transpose(A), b))
+            # avoid meaningless horizon lines
+            if np.max(np.abs(b - np.dot(A, horizonLine['ccDh']))) > 5e-1: # IMP* WATCH OUT
+                horizonLine['ccDh'] = np.zeros(mainSet['orderOfTheHorizonPolynomial'] + 1)
+                horizonLine['ccDh'][0] = 1.e+2 # IMP* WATCH OUT
+        except:
             horizonLine['ccDh'] = np.zeros(mainSet['orderOfTheHorizonPolynomial'] + 1)
             horizonLine['ccDh'][0] = 1.e+2 # IMP* WATCH OUT
         return horizonLine
+    #
     allVariablesKeys = ['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or'] # IMP*
+    #
+    # initialize mainSet with nc, nr, orderOfTheHorizonPolynomial and radiusOfEarth IMP*
     mainSet = {'nc':nc, 'nr':nr, 'orderOfTheHorizonPolynomial':options['orderOfTheHorizonPolynomial'], 'radiusOfEarth':options['radiusOfEarth']}
+    #
+    # obtain and load allVariablesDictionary and allVariables ensuring sca and sra are not null
     allVariablesDictionary = Array2Dictionary(allVariablesKeys, allVariables)
     allVariablesDictionary['sca'] = ClipWithSign(allVariablesDictionary['sca'], 1.e-8, 1.e+8)
     allVariablesDictionary['sra'] = ClipWithSign(allVariablesDictionary['sra'], 1.e-8, 1.e+8)
@@ -64,16 +83,23 @@ def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500 # ***
     mainSet['allVariablesDictionary'] = allVariablesDictionary
     mainSet.update(allVariablesDictionary) # IMP* (absorb all the keys in allVariablesDictionary: 'xc', 'yc', ...)
     mainSet['allVariables'] = allVariables
+    #
+    # obtain and load pc
     mainSet['pc'] = np.asarray([mainSet['xc'], mainSet['yc'], mainSet['zc']])
+    #
+    # obtain and load orthonormal matrix R and orthonormal unit vectors eu, ev and ef
     R = EulerianAngles2R(mainSet['ph'], mainSet['sg'], mainSet['ta'])
     eu, ev, ef = R2UnitVectors(R)
     mainSet['R'] = R
     mainSet['eu'], (mainSet['eux'], mainSet['euy'], mainSet['euz']) = eu, eu
     mainSet['ev'], (mainSet['evx'], mainSet['evy'], mainSet['evz']) = ev, ev
     mainSet['ef'], (mainSet['efx'], mainSet['efy'], mainSet['efz']) = ef, ef
+    #
+    # obtain and load horizonLine
     horizonLine = MainSet2HorizonLine(mainSet)
     mainSet['horizonLine'] = horizonLine
     mainSet.update(horizonLine) # IMP* (absorb all the keys in horizonLine: 'ccUh0', ...)
+    #
     return mainSet
 def AllVariables2SubsetVariables(dataBasic, allVariables, subsetVariablesKeys, options={}): # 202109251523
     ''' comments:
@@ -608,9 +634,9 @@ def ErrorT(dataForCal, mainSet, options={}): # 202110070903
     if options['verbose']:
         print('... errorT = {:4.3f} + {:4.3f} + {:4.3e} = {:4.3e}'.format(errorC, errorG, errorH, errorT))
     return errorT
-def ErrorT2PerturbationFactorAndNOfSeeds(errorT): # *** 
+def ErrorT2PerturbationFactorAndNOfSeeds(errorT):
     log10E = np.log10(max([errorT, 1.]))
-    perturbationFactor, nOfSeeds = 0.1 + 0.4 * log10E, 2 * (int(1. + 1. * log10E + 2. * log10E ** 2) + 1)
+    perturbationFactor, nOfSeeds = 0.1 + 0.4 * log10E, 20 * (int(1. + 1. * log10E + 2. * log10E ** 2) + 1)
     return perturbationFactor, nOfSeeds
 def EulerianAngles2R(ph, sg, ta): # 202109131100 # *** 
     ''' comments:
@@ -953,7 +979,8 @@ def N2K(n): # 202109131100 # ***
     '''
     k = (n - 1.) / 2.
     return k
-def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options={}): # 202109010000 # *** 
+def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options={}): # 202109010000
+    #
     ''' comments:
     .- input dataBasic is a dictionary
     .- input dataForCal is a dictionary (including at least 'nc', 'nr', 'cs', 'rs', 'xs', 'ys', 'zs', 'aG')
@@ -963,10 +990,16 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
     .- output mainSet is a dictionary or None (if it does not succeed)
     .- output errorT is a float or None (if it does not succeed)
     '''
+    #
+    # complete options
     keys, defaultValues = ['timedelta', 'verbose', 'xc', 'yc', 'zc'], [datetime.timedelta(seconds=100.), False, None, None, None]
     options = CompleteADictionary(options, keys, defaultValues)
+    #
+    # manage len(dataForCal['xs']) < minimumNOfGCPs
     if len(dataForCal['xs']) < int((len(subsetVariablesKeys) + 1.) / 2.):
         return None, None
+    #
+    # read mainSetSeed0 and errorTSeed0 if available (0 = read)
     imgDiagonal = np.sqrt(dataForCal['nc'] ** 2 + dataForCal['nr'] ** 2)
     if 'mainSetSeeds' in dataForCal.keys() and dataForCal['mainSetSeeds'] is not None and len(dataForCal['mainSetSeeds']) > 0:
         mainSetSeed0, errorTSeed0 = ReadAFirstSeed(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, dataForCal['mainSetSeeds'])
@@ -976,6 +1009,8 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
         mainSetSeed0, errorTSeed0 = None, 1.e+11 # IMP* the same values as in ReadAFirstSeed
         if options['verbose']:
             print('... NonlinearManualCalibration: no seed provided')
+    #
+    # obtain mainSetSeed and errorTSeed (takes read mainSetSeed0 and errorTSeed0 if errorTSeed0 is good enough)
     if mainSetSeed0 is not None and errorTSeed0 < 0.2 * imgDiagonal: # IMP* WATCH OUT
         mainSetSeed, errorTSeed = [copy.deepcopy(item) for item in [mainSetSeed0, errorTSeed0]]
     else:
@@ -983,13 +1018,20 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
         mainSetSeed, errorTSeed = FindAFirstSeed(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options=optionsTMP)
         if options['verbose']:
             print('... NonlinearManualCalibration: seed obtained with errorT = {:9.3f}'.format(errorTSeed))
+    #
+    # obtain scaledSubsetVariablesSeed
     subsetVariablesSeed = AllVariables2SubsetVariables(dataBasic, mainSetSeed['allVariables'], subsetVariablesKeys)
     scaledSubsetVariablesSeed = VariablesScaling(dataBasic, subsetVariablesSeed, subsetVariablesKeys, 'scale')
+    #
+    # obtain perturbationFactor and nOfSeeds
     perturbationFactor, nOfSeeds = ErrorT2PerturbationFactorAndNOfSeeds(errorTSeed)
+    #
+    # obtain mainSetO and errorTO (using MonteCarlo)
     (nc, nr), optionsHL = (dataForCal['nc'], dataForCal['nr']), {key:dataBasic[key] for key in ['orderOfTheHorizonPolynomial', 'radiusOfEarth']}
     theArgs = {'dataBasic':dataBasic, 'dataForCal':dataForCal, 'subsetVariablesKeys':subsetVariablesKeys, 'subCsetVariablesDictionary':subCsetVariablesDictionary}
-    iOfSeeds, (mainSetO, errorTO, scaledSubsetVariablesO) = 0, [copy.deepcopy(item) for item in [mainSetSeed, errorTSeed, scaledSubsetVariablesSeed]]
-    while iOfSeeds < nOfSeeds: # monteCarlo
+    mainSetO, errorTO, scaledSubsetVariablesO = [copy.deepcopy(item) for item in [mainSetSeed, errorTSeed, scaledSubsetVariablesSeed]]
+    for iOfSeeds in range(nOfSeeds): # monteCarlo
+        # obtain scaledSubsetVariablesP and errorTP (perturbating)
         if iOfSeeds == 0:
             perturbationFactorH = 0.
         else:
@@ -1001,12 +1043,13 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
             continue
         if errorTP >= 1.0 * imgDiagonal: # IMP* WATCH OUT
             continue
+        # obtain scaledSubsetVariablesP and errorTP (optimizing)
         try:
             scaledSubsetVariablesP = optimize.minimize(ScaledSubsetVariables2FTM, scaledSubsetVariablesP, args=(theArgs), callback=MinimizeStopper(5.)).x # IMP*
             errorTP = ScaledSubsetVariables2FTM(scaledSubsetVariablesP, theArgs)
         except:
             continue
-        iOfSeeds = iOfSeeds + 1 # IMP* WATCH OUT (para que no se quede en bucle)
+        # update mainSetO, errorTO and scaledSubsetVariablesO after checking
         if errorTP < errorTO:
             if not IsVariablesOK(scaledSubsetVariablesP, subsetVariablesKeys):
                 continue
@@ -1021,6 +1064,7 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
                 print('... improvement in iteration {:3}, errorT = {:9.3f}'.format(iOfSeeds+1, errorTO))
         if errorTO < 0.1: # IMP* interesting for RANSAC WATCH OUT
             break
+    #
     return mainSetO, errorTO
 def NonlinearManualCalibrationForcingUniqueSubCset(dataBasic, ncs, nrs, css, rss, xss, yss, zss, chss, rhss, subsetVariabless, subsetVariablesKeys, subCsetVariabless, subCsetVariablesKeys, options={}): # *** 
     ''' comments:
@@ -1155,6 +1199,7 @@ def ORBMatches(kps1, des1, kps2, des2, options={}): # 202109131700 # ***
     cs1, rs1, cs2, rs2, ers = [item[possGood] for item in [cs1, rs1, cs2, rs2, ers]]
     return cs1, rs1, cs2, rs2, ers
 def ObtainGoodGCPsRANSAC(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options={}): # 202109281641
+    #
     ''' comments:
     .- input dataBasic is a dictionary (including at least variablesName + 'VariablesKeys')
     .- input dataForCal is a dictionary (including at least 'cs', 'rs', 'xs', 'ys', 'zs' and 'aG')
@@ -1162,11 +1207,15 @@ def ObtainGoodGCPsRANSAC(dataBasic, dataForCal, subsetVariablesKeys, subCsetVari
     .- input subCsetVariablesDictionary is a dictionary
     .- output possGood is an integer-list
     '''
+    #
+    # complete options
     keys, defaultValues = ['errorRANSAC', 'nOfRANSAC', 'verbose'], [5., 100, False]
     options = CompleteADictionary(options, keys, defaultValues)
+    #
     (possGood, mainSetSeeds), minimumNOfGCPs = [[] for item in range(2)], int((len(subsetVariablesKeys) + 1.) / 2.)
     for iOfRANSAC in range(options['nOfRANSAC']):
         print('.', end='', flush=True)
+        # obtain dataForCalH
         dataForCalH = copy.deepcopy(dataForCal)
         if 'mainSetSeeds' in dataForCalH.keys():
             dataForCalH['mainSetSeeds'] = dataForCalH['mainSetSeeds'] + mainSetSeeds
@@ -1175,6 +1224,7 @@ def ObtainGoodGCPsRANSAC(dataBasic, dataForCal, subsetVariablesKeys, subCsetVari
         possH = random.sample(range(0, len(dataForCal['cs'])), minimumNOfGCPs)
         for key in ['cs', 'rs', 'xs', 'ys', 'zs']: # RANSAC only with GCPs
             dataForCalH[key] = dataForCal[key][possH]
+        # obtain calibration and compute errors
         mainSet, errorT = NonlinearManualCalibration(dataBasic, dataForCalH, subsetVariablesKeys, subCsetVariablesDictionary, options={'verbose':False}) #!
         if mainSet is not None:
             mainSetSeeds.append(mainSet)
@@ -1188,6 +1238,7 @@ def ObtainGoodGCPsRANSAC(dataBasic, dataForCal, subsetVariablesKeys, subCsetVari
             if len(possGood) == len(dataForCal['cs']):
                 break
     print('')
+    #
     return possGood
 def PathImgOrImg2Img(img): # 202110041642
     ''' comments:
