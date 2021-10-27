@@ -206,7 +206,7 @@ def AutoCalibrationOfImages(pathBasis, pathImages, nOfFeaturesORB, fC, KC, verbo
         parametersRANSAC = {'e':0.8, 's':4, 'p':0.999999, 'errorC':2.} # should be fine (on the safe side)
         Ha01, possGood = ulises.FindHomographyHa01ViaRANSAC(cUs0F, rUs0F, cUs1F, rUs1F, parametersRANSAC)
         if Ha01 is None or possGood is None or len(possGood) < KC:
-            print(' failed (K <= {:}) after RANSAC'.format(len(possGood))); continue
+            print(' failed (K < KC) after RANSAC'); continue
         uUas0F, vUas0F, cUs0F, rUs0F = [item[possGood] for item in [uUas0F, vUas0F, cUs0F, rUs0F]] # image to calibrate
         uUas1F, vUas1F, cUs1F, rUs1F = [item[possGood] for item in [uUas1F, vUas1F, cUs1F, rUs1F]] # first image of the basis
         #
