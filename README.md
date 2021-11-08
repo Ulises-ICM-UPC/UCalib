@@ -1,6 +1,6 @@
 # UCalib
 
-`UCalib` is an open source software written in Python for automatic image calibration of camera orientation from a set of images that are manually calibrated.
+`UCalib` is an open source software written in Python for automatic image calibration from a set of images that are manually calibrated.
 
 ### Description
 The calibration algorithm assumes that the camera position and the intrinsic parameters of the camera remain unchanged. The result of the process is a common position and intrinsic camera parameters for all images, and the orientation of the cameras for each of the images. In addition, planviews can be generated for each image. The development of this software is suitable for Argus-type video monitoring stations. Details about the algorithm and methodology are described in
@@ -74,6 +74,8 @@ To manually calibrate the images selected for the basis, placed in the folder **
 >`pixel-column`, `pixel-row`
 
 Quantities must be separated by at least one blank space between them and the last record should not be continued with a newline (return).
+
+To generate `<basisImage>cdg.txt` and `<basisImage>cdh.txt` files the [UClick](https://github.com/Ulises-ICM-UPC/UClick) software is available.
 
 ### Run basis calibration
 Import modules:
@@ -238,7 +240,7 @@ pathFolderBasisCheck = pathFolderMain + os.sep + 'basis_check'
 ucalib.CheckGCPs(pathFolderBasisCheck, eCritical, calibrationModel)
 ```
 
-For each file `<basisImage>cdg.txt`, the GPCs that should be revised or excluded will be reported.
+For each file `<basisImage>cdg.txt`, the GCPs that should be revised or excluded will be reported.
 
 ## Contact us
 
