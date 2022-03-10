@@ -1,5 +1,5 @@
 #
-# Thu Oct 27 17:32:25 2021, extract from Ulises by Gonzalo Simarro
+# Thu Mar 10 11:57:14 2022, extract from Ulises by Gonzalo Simarro
 #
 import cv2
 import copy
@@ -10,46 +10,44 @@ import random
 from scipy import optimize
 import time
 #
-def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500
-    #
+def AB2Pa11(A, b): # *** 
+    '''
+    .- input A is a (2*nx11)-float-ndarray
+    .- input b is a 2*n-float-ndarray
+    .- output Pa11 is a 11-float-ndarray
+    '''
+    try:
+        Pa11 = np.linalg.solve(np.dot(np.transpose(A), A), np.dot(np.transpose(A), b))
+    except:
+        Pa11 = None
+    return Pa11
+def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500 # *** 
     ''' comments:
     .- input allVariables is a 14-float-ndarray (xc, yc, zc, ph, sg, ta, k1a, k2a, p1a, p2a, sca, sra, oc, or)
     .- input nc and nr are integers or floats
     .- output mainSet is a dictionary
     '''
-    #
-    # complete options
     keys, defaultValues = ['orderOfTheHorizonPolynomial', 'radiusOfEarth'], [5, 6.371e+6]
     options = CompleteADictionary(options, keys, defaultValues)
-    #
-    def MainSet2HorizonLine(mainSet): # 202109141400
+    def MainSet2HorizonLine(mainSet, options={}): # 202109141400
         ''' comments:
         .- input mainSet is a dictionary
         .- output horizonLine is a dictionary
         '''
-        # set z0 (actually irrelevant)
-        z0 = 0.
-        # initialize horizonLine with nc and nr
+        keys, defaultValues = ['z0'], 0.
+        options = CompleteADictionary(options, keys, defaultValues)
         horizonLine = {key:mainSet[key] for key in ['nc', 'nr']}
-        # obtain horizon line in cU and rU: preliminaries
-        TMP = np.sqrt(mainSet['ef'][0] ** 2 + mainSet['ef'][1] ** 2)
-        efxp = mainSet['ef'][0] / TMP
-        efyp = mainSet['ef'][1] / TMP
-        a = mainSet['zc'] - z0
-        b = np.sqrt(2. * max([1.e-2, a]) * mainSet['radiusOfEarth'])
-        au = b * (efxp * mainSet['eu'][0] + efyp * mainSet['eu'][1]) - (a + mainSet['zc']) * mainSet['eu'][2]
-        av = b * (efxp * mainSet['ev'][0] + efyp * mainSet['ev'][1]) - (a + mainSet['zc']) * mainSet['ev'][2]
-        af = b * (efxp * mainSet['ef'][0] + efyp * mainSet['ef'][1]) - (a + mainSet['zc']) * mainSet['ef'][2]
-        # obtain horizon line in cU and rU: ccUh1 * cUh + crUh1 * rUh + ccUh0 = 0; rUh = -(ccUh1 * cUh + ccUh0) / crUh1
-        ccUh1 = + af * mainSet['eu'][2] * mainSet['sca']
-        crUh1 = + af * mainSet['ev'][2] * mainSet['sra']
-        ccUh0 = - au * mainSet['eu'][2] - av * mainSet['evz'] - ccUh1 * mainSet['oc'] - crUh1 * mainSet['or']
+        bp = np.sqrt(2. * max([1.e-2, mainSet['zc'] - options['z0']]) * mainSet['radiusOfEarth']) / np.sqrt(np.sum(mainSet['ef'][0:2] ** 2))
+        px, py, pz, vx, vy, vz = mainSet['xc'] + bp * mainSet['efx'], mainSet['yc'] + bp * mainSet['efy'], -max([1.e-2, mainSet['zc'] - 2. * options['z0']]), -mainSet['efy'], +mainSet['efx'], 0.
+        dc, cc = np.sum(mainSet['Pa'][0, 0:3] * np.asarray([vx, vy, vz])), np.sum(mainSet['Pa'][0, 0:3] * np.asarray([px, py, pz])) + mainSet['Pa'][0, 3]
+        dr, cr = np.sum(mainSet['Pa'][1, 0:3] * np.asarray([vx, vy, vz])), np.sum(mainSet['Pa'][1, 0:3] * np.asarray([px, py, pz])) + mainSet['Pa'][1, 3] 
+        dd, cd = np.sum(mainSet['Pa'][2, 0:3] * np.asarray([vx, vy, vz])), np.sum(mainSet['Pa'][2, 0:3] * np.asarray([px, py, pz])) + 1.
+        ccUh1, crUh1, ccUh0 = dr * cd - dd * cr, dd * cc - dc * cd, dc * cr - dr * cc
         TMP = max([np.sqrt(ccUh1 ** 2 + crUh1 ** 2), 1.e-8])
         horizonLine['ccUh1'] = ccUh1 / TMP
         horizonLine['crUh1'] = crUh1 / TMP
         horizonLine['ccUh0'] = ccUh0 / TMP
-        horizonLine['crUh1'] = ClipWithSign(horizonLine['crUh1'], 1.e-8, 1.e+8) 
-        # obtain horizon line in cD and rD: rDh = ccDh[0] + ccDh[1] * cDh + ccDh[2] * cDh ** 2 + ...
+        horizonLine['crUh1'] = ClipWithSign(horizonLine['crUh1'], 1.e-8, 1.e+8)
         cUhMin = -0.1 * mainSet['nc']
         cUhMax = +1.1 * mainSet['nc']
         cUhs = np.linspace(cUhMin, cUhMax, 31, endpoint=True)
@@ -61,7 +59,6 @@ def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500
         b = rDhs
         try:
             horizonLine['ccDh'] = np.linalg.solve(np.dot(np.transpose(A), A), np.dot(np.transpose(A), b))
-            # avoid meaningless horizon lines
             if np.max(np.abs(b - np.dot(A, horizonLine['ccDh']))) > 5e-1: # IMP* WATCH OUT
                 horizonLine['ccDh'] = np.zeros(mainSet['orderOfTheHorizonPolynomial'] + 1)
                 horizonLine['ccDh'][0] = 1.e+2 # IMP* WATCH OUT
@@ -69,13 +66,8 @@ def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500
             horizonLine['ccDh'] = np.zeros(mainSet['orderOfTheHorizonPolynomial'] + 1)
             horizonLine['ccDh'][0] = 1.e+2 # IMP* WATCH OUT
         return horizonLine
-    #
-    allVariablesKeys = ['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or'] # IMP*
-    #
-    # initialize mainSet with nc, nr, orderOfTheHorizonPolynomial and radiusOfEarth IMP*
+    allVariablesKeys = ['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or'] # WATCH OUT order matters
     mainSet = {'nc':nc, 'nr':nr, 'orderOfTheHorizonPolynomial':options['orderOfTheHorizonPolynomial'], 'radiusOfEarth':options['radiusOfEarth']}
-    #
-    # obtain and load allVariablesDictionary and allVariables ensuring sca and sra are not null
     allVariablesDictionary = Array2Dictionary(allVariablesKeys, allVariables)
     allVariablesDictionary['sca'] = ClipWithSign(allVariablesDictionary['sca'], 1.e-8, 1.e+8)
     allVariablesDictionary['sra'] = ClipWithSign(allVariablesDictionary['sra'], 1.e-8, 1.e+8)
@@ -83,27 +75,25 @@ def AllVariables2MainSet(allVariables, nc, nr, options={}): # 202109141500
     mainSet['allVariablesDictionary'] = allVariablesDictionary
     mainSet.update(allVariablesDictionary) # IMP* (absorb all the keys in allVariablesDictionary: 'xc', 'yc', ...)
     mainSet['allVariables'] = allVariables
-    #
-    # obtain and load pc
     mainSet['pc'] = np.asarray([mainSet['xc'], mainSet['yc'], mainSet['zc']])
-    #
-    # obtain and load orthonormal matrix R and orthonormal unit vectors eu, ev and ef
     R = EulerianAngles2R(mainSet['ph'], mainSet['sg'], mainSet['ta'])
     eu, ev, ef = R2UnitVectors(R)
     mainSet['R'] = R
     mainSet['eu'], (mainSet['eux'], mainSet['euy'], mainSet['euz']) = eu, eu
     mainSet['ev'], (mainSet['evx'], mainSet['evy'], mainSet['evz']) = ev, ev
     mainSet['ef'], (mainSet['efx'], mainSet['efy'], mainSet['efz']) = ef, ef
-    #
-    # obtain and load horizonLine
+    P, (tu, tv, tf) = np.zeros((3, 4)), [-np.sum(mainSet['pc'] * mainSet[item]) for item in ['eu', 'ev', 'ef']]
+    P[0, 0:3], P[0, 3] = mainSet['eu'] / mainSet['sca'] + mainSet['oc'] * mainSet['ef'], tu / mainSet['sca'] + mainSet['oc'] * tf
+    P[1, 0:3], P[1, 3] = mainSet['ev'] / mainSet['sra'] + mainSet['or'] * mainSet['ef'], tv / mainSet['sra'] + mainSet['or'] * tf
+    P[2, 0:3], P[2, 3] = mainSet['ef'], tf
+    mainSet['Pa'] = P / P[2, 3]
     horizonLine = MainSet2HorizonLine(mainSet)
     mainSet['horizonLine'] = horizonLine
     mainSet.update(horizonLine) # IMP* (absorb all the keys in horizonLine: 'ccUh0', ...)
-    #
     return mainSet
 def AllVariables2SubsetVariables(dataBasic, allVariables, subsetVariablesKeys, options={}): # 202109251523
     ''' comments:
-    .- input dataBasic is a dictionary
+    .- input dataBasic is a dictionary # UNUSED!
     .- input allVariables is a 14-float-ndarray
     .- input subsetVariablesKeys is a string-list
     .- output subsetVariables is a float-ndarray
@@ -111,7 +101,7 @@ def AllVariables2SubsetVariables(dataBasic, allVariables, subsetVariablesKeys, o
     keys, defaultValues = ['possSubsetInAll'], None
     options = CompleteADictionary(options, keys, defaultValues)
     if options['possSubsetInAll'] is not None:
-        subsetVariables = allVariables[options['possSubsetInAll']]
+        subsetVariables = allVariables[options['possSubsetInAll']] # best choice
     else:
         allVariablesKeys = ['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or'] # WATCH OUT order matters
         allVariablesDictionary = Array2Dictionary(allVariablesKeys, allVariables)
@@ -124,7 +114,6 @@ def ApplyHomographyHa01(Ha01, xs0, ys0): # 202110141303
     .- input xs0 and ys0 are float-ndarrays of the same length
     .- output xs1 and ys1 are float-ndarrays of the same length as xs0 and ys0
     '''
-    assert Ha01 is not None
     dens = Ha01[2, 0] * xs0 + Ha01[2, 1] * ys0 + Ha01[2, 2]
     if np.min(np.abs(dens)) > 1.e-6:
         xs1 = (Ha01[0, 0] * xs0 + Ha01[0, 1] * ys0 + Ha01[0, 2]) / dens
@@ -181,6 +170,25 @@ def CDRD2CURU(mainSet, cDs, rDs): # can be expensive 202109101200 # ***
         cUs, rUs = None, None
     else:
         cUs, rUs = UaVa2CR(mainSet, uUas, vUas)
+    return cUs, rUs
+def CDRD2CURUForParabolicSquaredDistortion(cDs, rDs, oca, ora, k1asa2): # *** 
+    ''' comments:
+    .- input cDs and rDs are float-ndarrays
+    .- input oca and ora are floats
+    .- input k1asa2 is a float (k1a * sa ** 2)
+    .- output cUs and rUs are float-ndarrays
+    '''
+    if np.abs(k1asa2) < 1.e-14:
+        cUs = 1. * cDs
+        rUs = 1. * rDs
+    else:
+        dDs2 = (cDs - oca) ** 2 + (rDs - ora) ** 2
+        xias = k1asa2 * dDs2
+        xas = Xi2XForParabolicDistortion(xias)
+        cUs = (cDs - oca) / (1. + xas) + oca
+        rUs = (rDs - ora) / (1. + xas) + ora
+    cDsR, rDsR = CURU2CDRDForParabolicSquaredDistortion(cUs, rUs, oca, ora, k1asa2)
+    assert np.allclose(cDs, cDsR) and np.allclose(rDs, rDsR)
     return cUs, rUs
 def CDRDZ2XY(mainSet, cDs, rDs, zs, options={}): # can be expensive 202109231442
     ''' comments:
@@ -242,18 +250,6 @@ class MinimizeStopper(object):
             assert False
         else:
             pass
-def CR2BandsCR(nOfBands, nc, nr, cs, rs): # 202109141600 # *** 
-    ''' comments:
-    .- input nOfBands is an integer
-    .- input nc and nr are integers
-    .- input cs and rs are integers- or floats-ndarrays of the same length
-    .- output bandCs and bandRs are lists of integers of the same length as cs and rs
-    '''
-    bandCs = (cs * nOfBands / nc).astype(int) # cs=0 -> bandCs=0; cs=nc-1 -> bandCs=int((nc-1)*nOfBands/nc) = nOfBands-1
-    bandRs = (rs * nOfBands / nr).astype(int) # rs=0 -> bandRs=0; rs=nr-1 -> bandRs=int((nr-1)*nOfBands/nr) = nOfBands-1
-    assert np.min(bandCs) >= 0 and np.max(bandCs) <= nOfBands - 1 and np.min(bandRs) >= 0 and np.max(bandRs) <= nOfBands - 1
-    bandCs, bandRs = [list(item) for item in [bandCs, bandRs]]
-    return bandCs, bandRs
 def CR2CRInteger(cs, rs): # 202109131000 # *** 
     ''' comments:
     .- input cs and rs are integer- or float-ndarrays
@@ -375,6 +371,12 @@ def CRWithinImage2NormalizedLengthsAndAreas(nc, nr, cs, rs, options={}): # 19030
 	normalizedAreas = np.min(areas, axis=1) / totalArea
 	assert len(normalizedLengths) == len(normalizedAreas) == nOfPixels
 	return normalizedLengths, normalizedAreas
+def CURU2B(cUs, rUs): # *** 
+    poss0, poss1 = Poss0AndPoss1(len(cUs))    
+    b = np.zeros(2 * len(cUs))
+    b[poss0] = cUs
+    b[poss1] = rUs
+    return b
 def CURU2CDRD(mainSet, cUs, rUs): # 202109101200 # *** 
     ''' comments:
     .- input mainSet is a dictionary
@@ -385,6 +387,36 @@ def CURU2CDRD(mainSet, cUs, rUs): # 202109101200 # ***
     uDas, vDas = UUaVUa2UDaVDa(mainSet, uUas, vUas)
     cDs, rDs = UaVa2CR(mainSet, uDas, vDas)
     return cDs, rDs
+def CURU2CDRDForParabolicSquaredDistortion(cUs, rUs, oca, ora, k1asa2): # *** 
+    ''' comments:
+    .- input cUs and rUs are float-ndarrays
+    .- input oca and ora are floats
+    .- input k1asa2 is a float (k1a * sa ** 2)
+    .- output cUs and rUs are float-ndarrays
+    '''
+    dUs2 = (cUs - oca) ** 2 + (rUs - ora) ** 2
+    cDs = (cUs - oca) * (1. + k1asa2 * dUs2) + oca
+    rDs = (rUs - ora) * (1. + k1asa2 * dUs2) + ora
+    return cDs, rDs
+def CURUXYZ2A(cUs, rUs, xs, ys, zs): # 202201250813
+    '''
+    .- input cUs, rUs, xs, ys and zs are float-ndarrays of the same length
+    .- output A is a (2*len(cUs)x11)-float-ndarray
+    '''
+    A0 = XYZ2A0(xs, ys, zs)
+    A1 = CURUXYZ2A1(cUs, rUs, xs, ys, zs)
+    A = np.concatenate((A0, A1), axis=1)
+    return A
+def CURUXYZ2A1(cUs, rUs, xs, ys, zs): # 202201250812
+    '''
+    .- input cUs, rUs, xs, ys and zs are float-ndarrays of the same length
+    .- output A1 is a (2*len(cUs)x3)-float-ndarray
+    '''
+    poss0, poss1 = Poss0AndPoss1(len(cUs))
+    A1 = np.zeros((2 * len(xs), 3))
+    A1[poss0, 0], A1[poss0, 1], A1[poss0, 2] = -cUs*xs, -cUs*ys, -cUs*zs
+    A1[poss1, 0], A1[poss1, 1], A1[poss1, 2] = -rUs*xs, -rUs*ys, -rUs*zs
+    return A1
 def CUh2RUh(horizonLine, cUhs): # 202109101200 # *** 
     ''' comments:
     .- input horizonLine is a dictionary (including at least 'ccUh1', 'crUh1' and 'ccUh0')
@@ -576,8 +608,9 @@ def ErrorC(xc, yc, zc, mainSet): # 202109231429
     .- input xc, yc, zc are floats
     .- input mainSet is a dictionary (including at least 'xc', 'yc' and 'zc')
     .- output errorC is a float
+    .- last revisions without modifications: 20220125
     '''
-    errorC = np.sqrt((mainSet['xc'] - xc) ** 2 + (mainSet['yc'] - yc) ** 2 + (mainSet['zc'] - zc) ** 2) # distance
+    errorC = np.sqrt((mainSet['xc'] - xc) ** 2 + (mainSet['yc'] - yc) ** 2 + (mainSet['zc'] - zc) ** 2) # distance (in m)
     return errorC
 def ErrorG(xs, ys, zs, cs, rs, mainSet): # 202109131100 # *** 
     ''' comments:
@@ -586,9 +619,10 @@ def ErrorG(xs, ys, zs, cs, rs, mainSet): # 202109131100 # ***
     .- input mainSet is a dictionary
     .- output errorG is a float
     .- avoids the use of implicit functions
+    .- last revisions without modifications: 20220125
     '''
     csR, rsR = XYZ2CDRD(mainSet, xs, ys, zs, options={})[0:2] #! IMP*
-    errorG = np.sqrt(np.mean((csR - cs) ** 2 + (rsR - rs) ** 2)) # RMSE in pixels
+    errorG = np.sqrt(np.mean((csR - cs) ** 2 + (rsR - rs) ** 2)) # RMSE (in pixels)
     return errorG
 def ErrorH(chs, rhs, horizonLine): # 202109131100 # *** 
     ''' comments:
@@ -596,47 +630,48 @@ def ErrorH(chs, rhs, horizonLine): # 202109131100 # ***
         .- chs and rhs are distorted pixel coordinates
     .- input horizonLine is a dictionary
     .- output errorH is a float
+    .- last revisions without modifications: 20220125
     '''
     rhsR = CDh2RDh(horizonLine, chs, options={})[0] #! IMP*
-    errorH = np.sqrt(np.mean((rhsR - rhs) ** 2)) # RMSE in pixels
+    errorH = np.sqrt(np.mean((rhsR - rhs) ** 2)) # RMSE (in pixels)
     return errorH
-def ErrorT(dataForCal, mainSet, options={}): # 202110070903
+def ErrorT(dataForCal, mainSet, options={}): # 202201250914
     ''' comments:
     .- input dataForCal is a dictionary (including at least 'cs', 'rs', 'xs', 'ys', 'zs' and 'aG')
         .- dataForCal keys for errorC: 'xc', 'yc', 'zc' and 'aC'
-        .- dataForCal keys for errorH: 'chs', 'rhs' and 'aH'
+        .- dataForCal keys for errorH: 'chs', 'rhs' (that can be empty ndarrays) and 'aH'
     .- input mainSet is a dictionary
     .- output errorT is a float
     '''
     keys, defaultValues = ['verbose'], [False]
     options = CompleteADictionary(options, keys, defaultValues)
-    keys = ['xc', 'yc', 'zc', 'aC']
-    if set(keys) <= dataForCal.keys() and all([dataForCal[item] is not None for item in keys]) and dataForCal['aC'] > 1.e-8: # account for errorC
+    keysTMP = ['xc', 'yc', 'zc', 'aC']
+    if set(keysTMP) <= dataForCal.keys() and all([dataForCal[item] is not None for item in keysTMP]) and dataForCal['aC'] > 1.e-8: # account for errorC
         xc, yc, zc = [dataForCal[item] for item in ['xc', 'yc', 'zc']]
         errorC = ErrorC(xc, yc, zc, mainSet) / dataForCal['aC']
     else:
         errorC = 0.
-    if not set(['cs', 'rs', 'xs', 'ys', 'zs', 'aG']) <= set(dataForCal.keys()): # check
-        print('... ErrorT: check dataForCal (cs, rs, xs, ys, zs and aG)'); assert False # IMP* to inform (ErrorT can be called within a try)
     xs, ys, zs, cs, rs = [dataForCal[item] for item in ['xs', 'ys', 'zs', 'cs', 'rs']]
     errorG = ErrorG(xs, ys, zs, cs, rs, mainSet) / dataForCal['aG']
-    if set(['chs', 'rhs']) <= set(dataForCal.keys()) and all([dataForCal[item] is not None for item in ['chs', 'rhs']]) and len(dataForCal['chs']) == len(dataForCal['rhs']) > 0:
-        if 'aH' not in dataForCal.keys(): # check
-            print('... ErrorT: check dataForCal (aH)'); assert False # IMP* to inform (ErrorT can be called within a try)
-        if dataForCal['aH'] > 1.e-8:
-            chs, rhs = [dataForCal[item] for item in ['chs', 'rhs']]
-            errorH = ErrorH(chs, rhs, mainSet['horizonLine']) / dataForCal['aH']
-        else: # ignore errorH
-            errorH = 0.
-    else: # ignore errorH
+    keysTMP = ['chs', 'rhs', 'aH']
+    if set(keysTMP) <= set(dataForCal.keys()) and all([dataForCal[item] is not None for item in keysTMP]) and len(dataForCal['chs']) == len(dataForCal['rhs']) > 0 and dataForCal['aH'] > 1.e-8:
+        chs, rhs = [dataForCal[item] for item in ['chs', 'rhs']]
+        errorH = ErrorH(chs, rhs, mainSet['horizonLine']) / dataForCal['aH']
+    else:
         errorH = 0.
     errorT = errorC + errorG + errorH
     if options['verbose']:
         print('... errorT = {:4.3f} + {:4.3f} + {:4.3e} = {:4.3e}'.format(errorC, errorG, errorH, errorT))
     return errorT
-def ErrorT2PerturbationFactorAndNOfSeeds(errorT):
+def ErrorT2PerturbationFactorAndNOfSeeds(errorT): # MUTABLE 202201270857
+    ''' comments:
+    .- input errorT is a float
+    .- output perturbationFactor is a float
+    .- output nOfSeeds is an integer
+    '''
+    factorForNOfSeeds = 2. # 10.
     log10E = np.log10(max([errorT, 1.]))
-    perturbationFactor, nOfSeeds = 0.1 + 0.4 * log10E, 20 * (int(1. + 1. * log10E + 2. * log10E ** 2) + 1)
+    perturbationFactor, nOfSeeds = 0.1 + 0.4 * log10E, 1 * int(factorForNOfSeeds + factorForNOfSeeds * log10E + 2. * factorForNOfSeeds * log10E ** 2) + 2 # WATCH OUT (nOfSeeds could be doubled)
     return perturbationFactor, nOfSeeds
 def EulerianAngles2R(ph, sg, ta): # 202109131100 # *** 
     ''' comments:
@@ -744,7 +779,7 @@ def FindGoodPositionsForHomographyHa01ViaRANSAC(xs0, ys0, xs1, ys1, parametersRA
     else:
         possGood = None
     return possGood
-def FindHomographyHa01(xs0, ys0, xs1, ys1): # 202110141311
+def FindHomographyHa01(xs0, ys0, xs1, ys1): # 202110141311 write it as vector? # *** 
     ''' comments:
     .- input xs0, ys0, xs1 and ys1 are float-ndarrays of the same length
     .- output Ha01 is a 3x3-float-ndarray or None (if it does not succeed)
@@ -753,12 +788,9 @@ def FindHomographyHa01(xs0, ys0, xs1, ys1): # 202110141311
     '''
     if len(xs0) == len(ys0) == len(xs1) == len(ys1) >= 4:
         A, b = np.zeros((2 * len(xs0), 8)), np.zeros(2 * len(xs0))
-        for pos in range(len(xs0)):
-            pos0, pos1 = 2 * pos, 2 * pos + 1
-            A[pos0, 0], A[pos0, 1], A[pos0, 2], A[pos0, 6], A[pos0, 7] = xs0[pos], ys0[pos], 1., -xs0[pos] * xs1[pos], -ys0[pos] * xs1[pos]
-            A[pos1, 3], A[pos1, 4], A[pos1, 5], A[pos1, 6], A[pos1, 7] = xs0[pos], ys0[pos], 1., -xs0[pos] * ys1[pos], -ys0[pos] * ys1[pos]
-            b[pos0] = xs1[pos]
-            b[pos1] = ys1[pos]
+        poss0, poss1 = Poss0AndPoss1InFind2DTransform(len(xs0))
+        A[poss0, 0], A[poss0, 1], A[poss0, 2], A[poss0, 6], A[poss0, 7], b[poss0] = xs0, ys0, np.ones(xs0.shape), -xs0 * xs1, -ys0 * xs1, xs1
+        A[poss1, 3], A[poss1, 4], A[poss1, 5], A[poss1, 6], A[poss1, 7], b[poss1] = xs0, ys0, np.ones(xs0.shape), -xs0 * ys1, -ys0 * ys1, ys1
         try:
             sol = np.linalg.solve(np.dot(np.transpose(A), A), np.dot(np.transpose(A), b))
             Ha01 = np.ones((3, 3)) # IMP* initialize with one
@@ -787,6 +819,23 @@ def FindHomographyHa01ViaRANSAC(xs0, ys0, xs1, ys1, parametersRANSAC): # 2021101
     else:
         Ha01 = FindHomographyHa01(xs0[possGood], ys0[possGood], xs1[possGood], ys1[possGood])
     return Ha01, possGood
+def GCPs2K1asa2(cDs, rDs, xs, ys, zs, oca, ora, k1asa2Min, k1asa2Max, options={}): # *** 
+    ''' comments:
+    .- input cDs, rDs, xs, ys and zs are is a float-ndarrays of the same length
+    .- input oca, ora, k1asa2Min, k1asa2Max are floats
+    .- output k1asa2 is a float
+    '''
+    keys, defaultValues = ['nOfK1asa2'], [1000]
+    options = CompleteADictionary(options, keys, defaultValues)
+    A0, k1asa2s, errors = XYZ2A0(xs, ys, zs), np.linspace(k1asa2Min, k1asa2Max, options['nOfK1asa2']), []
+    for k1asa2 in k1asa2s:
+        cUs, rUs = CDRD2CURUForParabolicSquaredDistortion(cDs, rDs, oca, ora, k1asa2)
+        A, b = np.concatenate((A0, CURUXYZ2A1(cUs, rUs, xs, ys, zs)), axis=1), CURU2B(cUs, rUs)
+        Pa11 = AB2Pa11(A, b)
+        cUsR, rUsR = XYZPa112CURU(xs, ys, zs, Pa11)
+        errors.append(np.sqrt(np.mean((cUsR - cUs) ** 2 + (rUsR - rUs) ** 2)))
+    k1asa2 = k1asa2s[np.argmin(np.asarray(errors))]
+    return k1asa2
 def GenerateRandomScaledVariables(dataBasic, variablesKeys, options={}): # 202109241335
     ''' comments:
     .- input dataBasic is a dictionary
@@ -814,7 +863,7 @@ def IntersectionOfTwoLines(line0, line1, options={}): # 202002291043 # ***
     .- output xIntersection and yIntersection are None if the lines are parallel
     .- output xIntersection and yIntersection is the point closest to the origin if the lines are coincident
     '''
-    keys, defaultValues = ['epsilon'], [1.e-10]
+    keys, defaultValues = ['epsilon'], [1.e-11]
     options = CompleteADictionary(options, keys, defaultValues)
     line0 = NormalizeALine(line0)
     line1 = NormalizeALine(line1)
@@ -918,7 +967,7 @@ def LoadDataPdfTxt(options={}): # 202109101200 # ***
             pathFile = options['pathFile']
         else:
             pathFile = options['dataBasic']['pathPlanviews'] + os.sep + options['dataBasic']['station'] + options['dataBasic']['date0OfTheWorld'] + 'pdf' + options['planview'] + '.txt' # WATCH OUT
-        data['pathFile'] = pathFile
+        data = {'pathFile':pathFile}
         if pathFile is not None:
             rawData = ReadRectangleFromTxt(pathFile, {'c1':1, 'valueType':'float'})
             data = {'timedeltaTolerance':datetime.timedelta(hours = rawData[6])}
@@ -979,8 +1028,20 @@ def N2K(n): # 202109131100 # ***
     '''
     k = (n - 1.) / 2.
     return k
-def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options={}): # 202109010000
-    #
+def NForRANSAC(eRANSAC, pRANSAC, sRANSAC): # *** 
+    ''' comments:
+    .- input eRANSAC is a float (probability of a point being "bad")
+    .- input pRANSAC is a float (goal probability of sRANSAC points being "good")
+    .- input sRANSAC is an integer (number of points of the model)
+    .- note that: (1 - e) ** s is the probability of a set of s points being good
+    .- note that: 1 - (1 - e) ** s is the probability of a set of s points being bad (at least one is bad)
+    .- note that: (1 - (1 - e) ** s) ** N is the probability of choosing N sets all being bad
+    .- note that: 1 - (1 - (1 - e) ** s) ** N is the probability of choosing N sets where at least one set if good
+    .- note that: from 1 - (1 - (1 - e) ** s) ** N = p -> 1 - p = (1 - (1 - e) ** s) ** N and we get the expression
+    '''
+    N = int(np.log(1. - pRANSAC) / np.log(1. - (1. - eRANSAC) ** sRANSAC)) + 1
+    return N
+def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options={}): # 202109010000 # *** 
     ''' comments:
     .- input dataBasic is a dictionary
     .- input dataForCal is a dictionary (including at least 'nc', 'nr', 'cs', 'rs', 'xs', 'ys', 'zs', 'aG')
@@ -990,16 +1051,10 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
     .- output mainSet is a dictionary or None (if it does not succeed)
     .- output errorT is a float or None (if it does not succeed)
     '''
-    #
-    # complete options
     keys, defaultValues = ['timedelta', 'verbose', 'xc', 'yc', 'zc'], [datetime.timedelta(seconds=100.), False, None, None, None]
     options = CompleteADictionary(options, keys, defaultValues)
-    #
-    # manage len(dataForCal['xs']) < minimumNOfGCPs
     if len(dataForCal['xs']) < int((len(subsetVariablesKeys) + 1.) / 2.):
         return None, None
-    #
-    # read mainSetSeed0 and errorTSeed0 if available (0 = read)
     imgDiagonal = np.sqrt(dataForCal['nc'] ** 2 + dataForCal['nr'] ** 2)
     if 'mainSetSeeds' in dataForCal.keys() and dataForCal['mainSetSeeds'] is not None and len(dataForCal['mainSetSeeds']) > 0:
         mainSetSeed0, errorTSeed0 = ReadAFirstSeed(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, dataForCal['mainSetSeeds'])
@@ -1009,8 +1064,6 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
         mainSetSeed0, errorTSeed0 = None, 1.e+11 # IMP* the same values as in ReadAFirstSeed
         if options['verbose']:
             print('... NonlinearManualCalibration: no seed provided')
-    #
-    # obtain mainSetSeed and errorTSeed (takes read mainSetSeed0 and errorTSeed0 if errorTSeed0 is good enough)
     if mainSetSeed0 is not None and errorTSeed0 < 0.2 * imgDiagonal: # IMP* WATCH OUT
         mainSetSeed, errorTSeed = [copy.deepcopy(item) for item in [mainSetSeed0, errorTSeed0]]
     else:
@@ -1018,21 +1071,14 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
         mainSetSeed, errorTSeed = FindAFirstSeed(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options=optionsTMP)
         if options['verbose']:
             print('... NonlinearManualCalibration: seed obtained with errorT = {:9.3f}'.format(errorTSeed))
-    #
-    # obtain scaledSubsetVariablesSeed
     subsetVariablesSeed = AllVariables2SubsetVariables(dataBasic, mainSetSeed['allVariables'], subsetVariablesKeys)
     scaledSubsetVariablesSeed = VariablesScaling(dataBasic, subsetVariablesSeed, subsetVariablesKeys, 'scale')
-    #
-    # obtain perturbationFactor and nOfSeeds
     perturbationFactor, nOfSeeds = ErrorT2PerturbationFactorAndNOfSeeds(errorTSeed)
-    #
-    # obtain mainSetO and errorTO (using MonteCarlo)
     (nc, nr), optionsHL = (dataForCal['nc'], dataForCal['nr']), {key:dataBasic[key] for key in ['orderOfTheHorizonPolynomial', 'radiusOfEarth']}
     theArgs = {'dataBasic':dataBasic, 'dataForCal':dataForCal, 'subsetVariablesKeys':subsetVariablesKeys, 'subCsetVariablesDictionary':subCsetVariablesDictionary}
     mainSetO, errorTO, scaledSubsetVariablesO = [copy.deepcopy(item) for item in [mainSetSeed, errorTSeed, scaledSubsetVariablesSeed]]
     for iOfSeeds in range(nOfSeeds): # monteCarlo
-        # obtain scaledSubsetVariablesP and errorTP (perturbating)
-        if iOfSeeds == 0:
+        if iOfSeeds == 0: # IMP* to ensure that the read 
             perturbationFactorH = 0.
         else:
             perturbationFactorH = 1. * perturbationFactor
@@ -1043,13 +1089,11 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
             continue
         if errorTP >= 1.0 * imgDiagonal: # IMP* WATCH OUT
             continue
-        # obtain scaledSubsetVariablesP and errorTP (optimizing)
         try:
             scaledSubsetVariablesP = optimize.minimize(ScaledSubsetVariables2FTM, scaledSubsetVariablesP, args=(theArgs), callback=MinimizeStopper(5.)).x # IMP*
             errorTP = ScaledSubsetVariables2FTM(scaledSubsetVariablesP, theArgs)
         except:
             continue
-        # update mainSetO, errorTO and scaledSubsetVariablesO after checking
         if errorTP < errorTO:
             if not IsVariablesOK(scaledSubsetVariablesP, subsetVariablesKeys):
                 continue
@@ -1064,7 +1108,6 @@ def NonlinearManualCalibration(dataBasic, dataForCal, subsetVariablesKeys, subCs
                 print('... improvement in iteration {:3}, errorT = {:9.3f}'.format(iOfSeeds+1, errorTO))
         if errorTO < 0.1: # IMP* interesting for RANSAC WATCH OUT
             break
-    #
     return mainSetO, errorTO
 def NonlinearManualCalibrationForcingUniqueSubCset(dataBasic, ncs, nrs, css, rss, xss, yss, zss, chss, rhss, subsetVariabless, subsetVariablesKeys, subCsetVariabless, subCsetVariablesKeys, options={}): # *** 
     ''' comments:
@@ -1082,6 +1125,7 @@ def NonlinearManualCalibrationForcingUniqueSubCset(dataBasic, ncs, nrs, css, rss
     assert subCsetVariables0.shape == subCsetVariabless[0].shape # avoidable
     ctrlContinue, ctrlFirst, mainSetsO, errorTsO = True, True, [{} for item in range(len(css))], np.zeros(len(css))
     while ctrlContinue:
+        print('... iterating (to obtain unique parameters) ...')
         if ctrlFirst: 
             subCsetVariables = copy.deepcopy(subCsetVariables0)
             mainSets, errorTs = [{} for item in range(len(css))], np.zeros(len(css))
@@ -1142,38 +1186,49 @@ def NormalizeALine(line, options={}): # 202109280946
 def ORBKeypoints(img, options={}): # 202109221400
     ''' comments:
     .- input img is an image or its path
-    .- output nc and nr are integers
-    .- output kps are ORB keypoints
-    .- output des are ORB descriptions
+    .- output nc and nr are integers or Nones (if it does not succeed)
+    .- output kps are ORB keypoints or None (if it does not succeed)
+    .- output des are ORB descriptions or None (if it does not succeed)
     .- output ctrl is a boolean (False if it does not succeed)
     '''
-    keys, defaultValues = ['nOfFeatures'], [5000]
+    keys, defaultValues = ['mask', 'nOfFeatures'], [None, 5000]
     options = CompleteADictionary(options, keys, defaultValues)
-    img = PathImgOrImg2Img(img)
-    nr, nc = img.shape[0:2]
     try:
+        img = PathImgOrImg2Img(img)
+        nr, nc = img.shape[0:2]
         orb = cv2.ORB_create(nfeatures=options['nOfFeatures'], scoreType=cv2.ORB_FAST_SCORE)
-        kps, des = orb.detectAndCompute(img, None)
+        if options['mask'] is not None:
+            kps, des = orb.detectAndCompute(img, mask=options['mask'])
+        else:
+            kps, des = orb.detectAndCompute(img, None)
         assert len(kps) == len(des) > 0
         ctrl = True
     except:
-        kps, des, ctrl = None, None, False
+        nc, nr, kps, des, ctrl = None, None, None, None, False
     return nc, nr, kps, des, ctrl
-def ORBKeypointsForAllImagesInAFolder(pathFolder, options={}): # 202110140919
+def ORBKeypointsForAllImagesInAFolder(pathFolder, options={}): # 202202011457
     ''' comments:
     .- input pathFolder is a string
     .- output fnsImages, ncs, nrs, kpss ands dess are lists
     '''
-    keys, defaultValues = ['nOfFeatures'], [5000]
+    keys, defaultValues = ['mask', 'nOfFeatures'], [None, 5000]
     options = CompleteADictionary(options, keys, defaultValues)
-    fnsImages = sorted([item for item in os.listdir(pathFolder) if item[item.rfind('.')+1:] in ['jpg', 'jpeg', 'png']]) # IMP*
-    ncs, nrs, kpss, dess = [[] for item in range(4)]
-    for fnImage in fnsImages:
-        nc, nr, kps, des, ctrl = ORBKeypoints(pathFolder + os.sep + fnImage, options={'nOfFeatures':options['nOfFeatures']})
-        if ctrl:
-            ncs.append(nc); nrs.append(nr); kpss.append(kps); dess.append(des)
-        else:
-            ncs.append(None); nrs.append(None); kpss.append(None); dess.append(None)
+    pathsImages = [os.path.join(pathFolder, item) for item in os.listdir(pathFolder) if item[item.rfind('.')+1:] in ['jpg', 'jpeg', 'png']] # IMP*
+    fnsImages, ncs, nrs, kpss, dess = ORBKeypointsForPathsImages(pathsImages, options={'mask':options['mask'], 'nOfFeatures':options['nOfFeatures']})
+    return fnsImages, ncs, nrs, kpss, dess
+def ORBKeypointsForPathsImages(pathsImages, options={}): # 202202011455
+    ''' comments:
+    .- input pathsImages is a list of strings
+    .- output fnsImages, ncs, nrs, kpss and dess are lists (including Nones whe it does not succeed)
+    '''
+    keys, defaultValues = ['mask', 'nOfFeatures'], [None, 5000]
+    options = CompleteADictionary(options, keys, defaultValues)
+    fnsImages, ncs, nrs, kpss, dess = [[] for item in range(5)]
+    for pathImage in pathsImages:
+        fnsImages.append(os.path.split(pathImage)[1])
+        optionsTMP = {key:options[key] for key in ['mask', 'nOfFeatures']}
+        nc, nr, kps, des, ctrl = ORBKeypoints(pathImage, options=optionsTMP)
+        ncs.append(nc); nrs.append(nr); kpss.append(kps); dess.append(des)
     return fnsImages, ncs, nrs, kpss, dess
 def ORBMatches(kps1, des1, kps2, des2, options={}): # 202109131700 # *** 
     ''' comments:
@@ -1194,52 +1249,11 @@ def ORBMatches(kps1, des1, kps2, des2, options={}): # 202109131700 # ***
     cs1, rs1, cs2, rs2 = cs1[poss1], rs1[poss1], cs2[poss2], rs2[poss2]
     ers = np.asarray([match.distance for match in matches12] + [match.distance for match in matches21])
     assert len(cs1) == len(rs1) == len(cs2) == len(rs2) == len(ers)
+    cs1, rs1, cs2, rs2, ers = np.unique(np.asarray([cs1, rs1, cs2, rs2, ers]), axis=1)
     dps = np.sqrt((cs1 - cs2) ** 2 + (rs1 - rs2) ** 2)
-    possGood = np.where((ers < options['erMaximum']) & (dps < np.mean(dps) + options['nOfStd'] * np.std(dps) + 1.e-3))[0]
+    possGood = np.where((ers < options['erMaximum']) & (dps < np.mean(dps) + options['nOfStd'] * np.std(dps) + 1.e-8))[0]
     cs1, rs1, cs2, rs2, ers = [item[possGood] for item in [cs1, rs1, cs2, rs2, ers]]
     return cs1, rs1, cs2, rs2, ers
-def ObtainGoodGCPsRANSAC(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options={}): # 202109281641
-    #
-    ''' comments:
-    .- input dataBasic is a dictionary (including at least variablesName + 'VariablesKeys')
-    .- input dataForCal is a dictionary (including at least 'cs', 'rs', 'xs', 'ys', 'zs' and 'aG')
-    .- input subsetVariablesKeys is a string-list
-    .- input subCsetVariablesDictionary is a dictionary
-    .- output possGood is an integer-list
-    '''
-    #
-    # complete options
-    keys, defaultValues = ['errorRANSAC', 'nOfRANSAC', 'verbose'], [5., 100, False]
-    options = CompleteADictionary(options, keys, defaultValues)
-    #
-    (possGood, mainSetSeeds), minimumNOfGCPs = [[] for item in range(2)], int((len(subsetVariablesKeys) + 1.) / 2.)
-    for iOfRANSAC in range(options['nOfRANSAC']):
-        print('.', end='', flush=True)
-        # obtain dataForCalH
-        dataForCalH = copy.deepcopy(dataForCal)
-        if 'mainSetSeeds' in dataForCalH.keys():
-            dataForCalH['mainSetSeeds'] = dataForCalH['mainSetSeeds'] + mainSetSeeds
-        else:
-            dataForCalH['mainSetSeeds'] = mainSetSeeds # mainSetSeeds is already list
-        possH = random.sample(range(0, len(dataForCal['cs'])), minimumNOfGCPs)
-        for key in ['cs', 'rs', 'xs', 'ys', 'zs']: # RANSAC only with GCPs
-            dataForCalH[key] = dataForCal[key][possH]
-        # obtain calibration and compute errors
-        mainSet, errorT = NonlinearManualCalibration(dataBasic, dataForCalH, subsetVariablesKeys, subCsetVariablesDictionary, options={'verbose':False}) #!
-        if mainSet is not None:
-            mainSetSeeds.append(mainSet)
-            csR, rsR = XYZ2CDRD(mainSet, dataForCal['xs'], dataForCal['ys'], dataForCal['zs'], options={})[0:2] #!
-            possGoodH = np.where(np.sqrt((csR - dataForCal['cs']) ** 2 + (rsR - dataForCal['rs']) ** 2) < options['errorRANSAC'])[0]
-            if len(possGoodH) > len(possGood):
-                possGood = copy.deepcopy(possGoodH)
-                if options['verbose']:
-                    print('')
-                    print('... RANSAC iteration {:3}: {:3} good GCPs out of {:3}'.format(iOfRANSAC+1, len(possGood), len(dataForCal['cs'])))
-            if len(possGood) == len(dataForCal['cs']):
-                break
-    print('')
-    #
-    return possGood
 def PathImgOrImg2Img(img): # 202110041642
     ''' comments:
     .- input img is a cv2-image or a string
@@ -1306,11 +1320,11 @@ def PlanviewPrecomputations(mainSets, dataPdfTxt, z): # 202109101200 # ***
         planviewPrecomputations[camera]['rsIA'] = rsCameraIA # nOfplanviewPositionsInCamera x 4
         planviewPrecomputations[camera]['wsA1'] = wsCameraA # nOfplanviewPositionsInCamera x 4
     return planviewPrecomputations
-def PlotMainSet(img, mainSet, cs, rs, xs, ys, zs, chs, rhs, pathImgOut): # 202110131429
+def PlotMainSet(img, mainSet, cs, rs, xs, ys, zs, chs, rhs, pathImgOut): # 202111171719
     ''' comments:
     .- input img is a cv2-image or a string
     .- input mainSet is a dictionary (including at least 'horizonLine')
-    .- input cs, rs, xs, ys and zs are float-ndarrays
+    .- input cs, rs, xs, ys and zs are float-ndarrays of the same length
     .- input chs and rhs are float-ndarrays or None
     .- input pathImgOut is a string
     '''
@@ -1319,12 +1333,10 @@ def PlotMainSet(img, mainSet, cs, rs, xs, ys, zs, chs, rhs, pathImgOut): # 20211
     img = DisplayCRInImage(img, cs, rs, options={'colors':[[0, 0, 0]], 'size':np.sqrt(nc*nr)/200})
     csR, rsR = XYZ2CDRD(mainSet, xs, ys, zs, options={})[0:2] #!
     img = DisplayCRInImage(img, csR, rsR, options={'colors':[[0, 255, 255]], 'size':np.sqrt(nc*nr)/400})
-    try:
-        img = DisplayCRInImage(img, chs, rhs, options={'colors':[[0, 0, 0]], 'size':np.sqrt(nc*nr)/200})
-    except:
-        pass
     chsR, rhsR = np.arange(0, nc, 1), CDh2RDh(mainSet['horizonLine'], np.arange(0, nc, 1), options={})[0] #!
     img = DisplayCRInImage(img, chsR, rhsR, options={'colors':[[0, 255, 255]], 'size':1})
+    if chs is not None and rhs is not None:
+        img = DisplayCRInImage(img, chs, rhs, options={'colors':[[0, 0, 0]], 'size':np.sqrt(nc*nr)/200})
     cv2.imwrite(pathImgOut, img)
     return None
 def PointInALineClosestToAPoint(line, x, y): # 202002291043 # *** 
@@ -1338,6 +1350,18 @@ def PointInALineClosestToAPoint(line, x, y): # 202002291043 # ***
     xClosest = line['ly'] * (line['ly'] * x - line['lx'] * y) - line['lx'] * line['lt']
     yClosest = line['lx'] * (line['lx'] * y - line['ly'] * x) - line['ly'] * line['lt']
     return xClosest, yClosest
+def Poss0AndPoss1(n): # 202201250804
+    '''
+    .- input n is an integer
+    .- output poss0 and poss1 are n-integer-list
+    '''
+    poss0 = [2*pos+0 for pos in range(n)]
+    poss1 = [2*pos+1 for pos in range(n)]
+    return poss0, poss1
+def Poss0AndPoss1InFind2DTransform(n): # *** 
+    poss0 = [2*pos+0 for pos in range(n)]
+    poss1 = [2*pos+1 for pos in range(n)]
+    return poss0, poss1
 def R2UnitVectors(R): # 202109131100 # *** 
     ''' comments:
     .- input R is a 3x3-float-ndarray
@@ -1347,6 +1371,39 @@ def R2UnitVectors(R): # 202109131100 # ***
     assert R.shape == (3, 3)
     eu, ev, ef = R[0, :], R[1, :], R[2, :]
     return eu, ev, ef
+def RANSACForGCPs(cDs, rDs, xs, ys, zs, oca, ora, eRANSAC, pRANSAC, ecRANSAC, NForRANSACMax, options={}): # *** 
+    keys, defaultValues = ['nOfK1asa2'], [1000]
+    options = CompleteADictionary(options, keys, defaultValues)
+    dD2Max = np.max((cDs - oca) ** 2 + (rDs - ora) ** 2)
+    k1asa2 = 0.
+    possGood = RANSACForGCPsAndK1asa2(cDs, rDs, xs, ys, zs, oca, ora, k1asa2, eRANSAC, pRANSAC, 3. * ecRANSAC, NForRANSACMax) # WATCH OUT
+    cDsSel, rDsSel, xsSel, ysSel, zsSel = [item[possGood] for item in [cDs, rDs, xs, ys, zs]]
+    k1asa2Min, k1asa2Max = -4./(27.*dD2Max)+1.e-11, 4./(27.*dD2Max) # WATCH OUT
+    k1asa2 = GCPs2K1asa2(cDsSel, rDsSel, xsSel, ysSel, zsSel, oca, ora, k1asa2Min, k1asa2Max, options={'nOfK1asa2':options['nOfK1asa2']})
+    possGood = RANSACForGCPsAndK1asa2(cDs, rDs, xs, ys, zs, oca, ora, k1asa2, eRANSAC, pRANSAC, ecRANSAC, NForRANSACMax)
+    cDsSel, rDsSel, xsSel, ysSel, zsSel = [item[possGood] for item in [cDs, rDs, xs, ys, zs]] # departing from the original points
+    k1asa2Min, k1asa2Max = -4./(27.*dD2Max)+1.e-11, 4./(27.*dD2Max) # WATCH OUT
+    k1asa2 = GCPs2K1asa2(cDsSel, rDsSel, xsSel, ysSel, zsSel, oca, ora, k1asa2Min, k1asa2Max, options={'nOfK1asa2':options['nOfK1asa2']})
+    return possGood, k1asa2
+def RANSACForGCPsAndK1asa2(cDs, rDs, xs, ys, zs, oca, ora, k1asa2, eRANSAC, pRANSAC, ecRANSAC, NForRANSACMax): # *** 
+    cUs, rUs = CDRD2CURUForParabolicSquaredDistortion(cDs, rDs, oca, ora, k1asa2)
+    AAll, bAll = CURUXYZ2A(cUs, rUs, xs, ys, zs), CURU2B(cUs, rUs)
+    sRANSAC = 6 #  (to obtain 12 equations >= 11 unkowns)
+    N, possGood = min(NForRANSACMax, NForRANSAC(eRANSAC, pRANSAC, sRANSAC)), []
+    for iN in range(N):
+        possH = random.sample(range(0, len(cUs)), sRANSAC)
+        poss01 = [2*item for item in possH] + [2*item+1 for item in possH] # who cares about the order (both A and b suffer the same)
+        A, b = AAll[poss01, :], bAll[poss01]
+        try:
+            Pa11 = AB2Pa11(A, b)
+            cUsR, rUsR = XYZPa112CURU(xs, ys, zs, Pa11) # all positions
+            errors = np.sqrt((cUsR - cUs) ** 2 + (rUsR - rUs) ** 2)
+        except:
+            continue
+        possGoodH = np.where(errors <= ecRANSAC)[0]
+        if len(possGoodH) > len(possGood):
+            possGood = copy.deepcopy(possGoodH)
+    return possGood
 def Random(value0, value1, options={}): # 202109131700 # *** 
     ''' comments:
     .- input value0 is a float
@@ -1527,7 +1584,7 @@ def ScaledSubsetVariables2MainSet(dataBasic, scaledSubsetVariables, subsetVariab
     optionsTMP = {key:options[key] for key in ['orderOfTheHorizonPolynomial', 'radiusOfEarth']}
     mainSet = AllVariables2MainSet(allVariables, nc, nr, options=optionsTMP)
     return mainSet
-def SelectPixelsInGrid(nOfBands, nc, nr, cs, rs, es): # 202109141700 # *** 
+def SelectPixelsInGrid(nOfBands, nc, nr, cs, rs, es, options={}): # *** 
     ''' comments:
     .- input nOfBands is an integer
     .- input nc and nr are integers or floats
@@ -1535,26 +1592,30 @@ def SelectPixelsInGrid(nOfBands, nc, nr, cs, rs, es): # 202109141700 # ***
     .- input es is a float-ndarrays of the same length as cs and rs
     .- output possSelected, bandCsSelected and bandRsSelected are integer-list or Nones (if it does not succeed)
     '''
+    keys, defaultValues = ['nOfCBands', 'nOfRBands'], None
+    options = CompleteADictionary(options, keys, defaultValues)
+    if options['nOfCBands'] is None or options['nOfRBands'] is None:
+        nOfCBands, nOfRBands = nOfBands, nOfBands
+    else:
+        nOfCBands, nOfRBands = options['nOfCBands'], options['nOfRBands'] # nOfBands is actually ignored
     if len(cs) == 0:
         return None, None, None
-    bandCs, bandRs = CR2BandsCR(nOfBands, nc, nr, cs, rs) # two integer-lists
-    bandCs, bandRs = [np.asarray(item).astype(int) for item in [bandCs, bandRs]] # two integer-ndarrays
-    bandGs = bandCs * 5 * nOfBands + bandRs # global counter
+    bandCs = (cs * nOfCBands / nc).astype(int) # cs=0 -> bandCs=0; cs=nc-1 -> bandCs=int((nc-1)*nOfBands/nc) = nOfBands-1
+    bandRs = (rs * nOfRBands / nr).astype(int) # rs=0 -> bandRs=0; rs=nr-1 -> bandRs=int((nr-1)*nOfBands/nr) = nOfBands-1
+    bandGs = bandCs * 1 * (nOfRBands + 1) + bandRs # global counter
     bandGsUnique = np.asarray(list(set(list(bandGs))))
-    assert len(bandGsUnique) > 0 # avoidable
     possSelected, bandCsSelected, bandRsSelected = [[] for item in range(3)]
     for pos, bandGUnique in enumerate(bandGsUnique):
         possOfBandGUnique = np.where(bandGs == bandGUnique)[0] # list of global positions
-        assert len(possOfBandGUnique) > 0 # avoidable
         if len(possOfBandGUnique) == 1:
-            posOfBandGUnique = possOfBandGUnique[0]
+            posOfBandGUnique = possOfBandGUnique[0] # global position
         else:
-            posOfBandGUnique = possOfBandGUnique[np.argmin(es[possOfBandGUnique])]
+            posOfBandGUnique = possOfBandGUnique[np.argmin(es[possOfBandGUnique])] # global position
         possSelected.append(posOfBandGUnique)
         bandCsSelected.append(bandCs[posOfBandGUnique])
         bandRsSelected.append(bandRs[posOfBandGUnique])
     return possSelected, bandCsSelected, bandRsSelected
-def SelectedVariables2AllVariables(selectedVariables, selectedVariablesKeys, options={}): # 202109241031
+def SelectedVariables2AllVariables(selectedVariables, selectedVariablesKeys, options={}): # 202201101351
     ''' comments:
     .- input selectedVariablesKeys is a string-list
     .- input selectedVariables a float-ndarray
@@ -1800,7 +1861,7 @@ def WriteCalTxt(pathCalTxt, allVariables, nc, nr, errorT): # 202110131423
     .- input nc and nr are integers or floats
     .- input errorT is a float
     '''
-    allVariablesKeys = ['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or'] # IMP* WATCH OUT order matters
+    allVariablesKeys = ['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or'] # WATCH OUT order matters
     MakeFolder(pathCalTxt[0:pathCalTxt.rfind(os.sep)])
     fileout = open(pathCalTxt, 'w')
     for pos in range(len(allVariables)):
@@ -1847,6 +1908,16 @@ def XY2CR(dataPdfTxt, xs, ys, options={}): # 202109101200 # ***
         xsR, ysR = CR2XY(dataPdfTxt, cs, rs, options={'dobleCheck':False, 'imgMargins':options['imgMargins'], 'returnGoodPositions':False})[0:2]
         assert all([np.allclose(xs, xsR), np.allclose(ys, ysR)])
     return cs, rs, possGood
+def XYZ2A0(xs, ys, zs): # 202201250808
+    '''
+    .- input xs, ys and zs are float-ndarrays of the same length
+    .- output A0 is a (2*len(xs)x8)-float-ndarray
+    '''
+    poss0, poss1 = Poss0AndPoss1(len(xs))
+    A0 = np.zeros((2 * len(xs), 8))
+    A0[poss0, 0], A0[poss0, 1], A0[poss0, 2], A0[poss0, 3] = xs, ys, zs, np.ones(xs.shape)
+    A0[poss1, 4], A0[poss1, 5], A0[poss1, 6], A0[poss1, 7] = xs, ys, zs, np.ones(xs.shape)
+    return A0
 def XYZ2CDRD(mainSet, xs, ys, zs, options={}): # 202109131600 # *** 
     ''' comments:
     .- input mainSet is a dictionary (including at least 'nc' and 'nr')
@@ -1905,3 +1976,35 @@ def XYZ2UUaVUa(mainSet, xs, ys, zs, options={}): # 202109231411
     else:
         possRightSideOfCamera = None
     return uUas, vUas, possRightSideOfCamera
+def XYZPa112CURU(xs, ys, zs, Pa11): # *** 
+    ''''
+    .- input xs, ys and zs are float-ndarrays of the same length
+    .- input Pa11 is a 11-float-ndarray
+    .- output cUs and rUs are float-ndarrays of the same length as xs
+    '''
+    dens = Pa11[8] * xs + Pa11[9] * ys + Pa11[10] * zs + 1.
+    cUs = (Pa11[0] * xs + Pa11[1] * ys + Pa11[2] * zs + Pa11[3]) / dens
+    rUs = (Pa11[4] * xs + Pa11[5] * ys + Pa11[6] * zs + Pa11[7]) / dens
+    return cUs, rUs
+def Xi2XForParabolicDistortion(xis): # *** 
+    ''' comments:
+    .- input xis is a float-ndarray
+    .- output xs is a float-ndarray
+        .- it is solved: xis = xs ** 3 + 2 * xs ** 2 + xs
+    '''
+    p, qs, Deltas = -1. /3., -(xis + 2. / 27.), (xis + 4. / 27.) * xis
+    if np.max(Deltas) < 0: # for xis in (-4/27, 0)
+        n3s = (qs + 1j * np.sqrt(np.abs(Deltas))) / 2.
+        ns = np.abs(n3s) ** (1. / 3.) * np.exp(1j * (np.abs(np.angle(n3s)) + 2. * np.pi * 1.) / 3.) # we ensure theta > 0; + 2 pi j for j = 0, 1, 2
+    elif np.min(Deltas) >= 0: # for xis not in (-4/27, 0)
+        auxs = (qs + np.sqrt(Deltas)) / 2.
+        ns = np.sign(auxs) * (np.abs(auxs) ** (1. / 3.))
+    else:
+        possN, possP, ns = np.where(Deltas < 0)[0], np.where(Deltas >= 0)[0], np.zeros(xis.shape) + 1j * np.zeros(xis.shape)
+        n3sN = (qs[possN] + 1j * np.sqrt(np.abs(Deltas[possN]))) / 2.
+        ns[possN] = np.abs(n3sN) ** (1. / 3.) * np.exp(1j * (np.abs(np.angle(n3sN)) + 2. * np.pi * 1.) / 3.) # we ensure theta > 0; + 2 pi j for j = 0, 1, 2
+        auxs = (qs[possP] + np.sqrt(Deltas[possP])) / 2.
+        ns[possP] = np.sign(auxs) * (np.abs(auxs) ** (1. / 3.))
+    xs = np.real(p / (3. * ns) - ns - 2. / 3.)
+    assert np.allclose(xs ** 3 + 2 * xs ** 2 + xs, xis) # avoidable
+    return xs

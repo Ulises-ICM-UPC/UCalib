@@ -325,15 +325,9 @@ def PlanviewsFromImages(pathImages, pathPlanviews, z0, ppm, verbosePlot):
     #
     return None
 #
-def CheckGCPs(pathBasisCheck, errorCritical, model):
+def CheckGCPs(pathBasisCheck, errorCritical):
     #
-    errorRANSAC, nOfRANSAC, aG = errorCritical, 100, 1.
-    #
-    # manage model
-    model2SelectedVariablesKeys = {'parabolic':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'sca'], 'quartic':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'sca'], 'full':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or']}
-    if model not in model2SelectedVariablesKeys.keys():
-        print('*** Invalid calibration model {:}'.format(model))
-        print('*** Choose one of the following calibration models: {:}'.format(list(model2SelectedVariablesKeys.keys()))); exit()
+    eRANSAC, pRANSAC, ecRANSAC, NForRANSACMax = 0.8, 0.999999, errorCritical, 50000
     #
     # check GCPs
     fnsImages = sorted([item for item in os.listdir(pathBasisCheck) if '.' in item and item[item.rfind('.')+1:] in ['jpeg', 'JPEG', 'jpg', 'JPG', 'png', 'PNG']])
@@ -344,7 +338,7 @@ def CheckGCPs(pathBasisCheck, errorCritical, model):
         # load image information and dataBasic
         if posFnImage == 0:
             nr, nc = cv2.imread(pathBasisCheck + os.sep + fnImage).shape[0:2]
-            dataBasic = ulises.LoadDataBasic0(options={'nc':nc, 'nr':nr, 'selectedVariablesKeys':model2SelectedVariablesKeys[model]})
+            oca, ora = (nc-1)/2, (nr-1)/2
         else:
             assert cv2.imread(pathBasisCheck + os.sep + fnImage).shape[0:2] == (nr, nc)
         #
@@ -352,10 +346,7 @@ def CheckGCPs(pathBasisCheck, errorCritical, model):
         pathCdgTxt = pathBasisCheck + os.sep + fnImage[0:fnImage.rfind('.')] + 'cdg.txt'
         cs, rs, xs, ys, zs = ulises.ReadCdgTxt(pathCdgTxt, options={'readCodes':False, 'readOnlyGood':True})[0:5]
         #
-        # load dataForCal and obtain good GCPs via RANSAC
-        dataForCal = {'nc':nc, 'nr':nr, 'cs':cs, 'rs':rs, 'xs':xs, 'ys':ys, 'zs':zs, 'aG':aG} # IMP* only GCPs
-        subsetVariablesKeys, subCsetVariablesDictionary = model2SelectedVariablesKeys[model], {}
-        possGood = ulises.ObtainGoodGCPsRANSAC(dataBasic, dataForCal, subsetVariablesKeys, subCsetVariablesDictionary, options={'errorRANSAC':errorRANSAC, 'nOfRANSAC':nOfRANSAC, 'verbose':True})
+        possGood = ulises.RANSACForGCPs(cs, rs, xs, ys, zs, oca, ora, eRANSAC, pRANSAC, ecRANSAC, NForRANSACMax, options={'nOfK1asa2':1000})[0]
         #
         # inform
         if len(possGood) < len(cs):
@@ -367,4 +358,3 @@ def CheckGCPs(pathBasisCheck, errorCritical, model):
             print('... all the GCPs for {:} are OK'.format(fnImage))
     #
     return None
-#
