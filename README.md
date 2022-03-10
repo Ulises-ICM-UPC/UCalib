@@ -1,3 +1,4 @@
+
 # UCalib
 
 `UCalib` is an open source software written in Python for automatic image calibration from a set of images that are manually calibrated.
@@ -215,7 +216,7 @@ The resolution of the planviews is fixed by the pixels-per-meter established in 
 
 
 ```python
-ppm = 1.0
+ppm = 2.0
 verbosePlot = True
 ```
 
@@ -232,12 +233,12 @@ As a result, for each of the calibrated images `<image>.png` in folder **`images
 
 ## GCP check
 
-To verify the quality of the GCPs used in the manual calibration of the basis images, a RANSAC (RANdom SAmple Consensus) is performed. Points of the files `<basisImage>cdg.txt` located at the **`basis_check`** folder will be tested. The calibration of the points is done with a `calibrationModel` and requires a minimum error `eCritical`. Set the folder and run the RANSAC algorithm:
+To verify the quality of the GCPs used in the manual calibration of the basis images, a RANSAC (RANdom SAmple Consensus) is performed. Points of the files `<basisImage>cdg.txt` located at the **`basis_check`** folder will be tested. The calibration of the points is done assuming a _parabolic_ camera model and requires a minimum error `eCritical`. Set the folder and run the RANSAC algorithm:
 
 
 ```python
 pathFolderBasisCheck = pathFolderMain + os.sep + 'basis_check'
-ucalib.CheckGCPs(pathFolderBasisCheck, eCritical, calibrationModel)
+ucalib.CheckGCPs(pathFolderBasisCheck, eCritical)
 ```
 
 For each file `<basisImage>cdg.txt`, the GCPs that should be revised or excluded will be reported.

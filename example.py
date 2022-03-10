@@ -30,8 +30,8 @@ ucalib.CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathFolderBasis, calibrat
 #
 #pathFolderBasis = pathFolderMain + os.sep + 'basis' # USER DEFINED
 pathFolderImages = pathFolderMain + os.sep + 'images' # USER DEFINED
-nORB, fC, KC = 10000, 5., 4 # USER DEFINED
 verbosePlot = True # USER DEFINED
+nORB, fC, KC = 10000, 5., 4 # USER DEFINED
 #
 print('Autocalibration of the images')
 ucalib.AutoCalibrationOfImages(pathFolderBasis, pathFolderImages, nORB, fC, KC, verbosePlot)
@@ -53,8 +53,8 @@ ucalib.PlanviewsFromImages(pathFolderImages, pathFolderPlanviews, z0, ppm, verbo
 #''' --------------------------------------------------------------------------
 #
 pathFolderBasisCheck = pathFolderMain + os.sep + 'basis_check' # USER DEFINED
-#eCritical, calibrationModel = 5., 'parabolic' # USER DEFINED (eCritical is in pixels, calibrationModel = 'parabolic', 'quartic' or 'full')
+#eCritical = 5. # USER DEFINED (eCritical is in pixels)
 #
 print('Checking of the basis')
-ucalib.CheckGCPs(pathFolderBasisCheck, eCritical, calibrationModel)
+ucalib.CheckGCPs(pathFolderBasisCheck, eCritical)
 #
