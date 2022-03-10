@@ -1,5 +1,5 @@
 #'''
-# Created on 2021 by Gonzalo Simarro, Daniel Calvete and Paola Souto
+# Created on 2022 by Gonzalo Simarro, Daniel Calvete and Paola Souto
 #'''
 #
 import os
@@ -42,7 +42,7 @@ ucalib.AutoCalibrationOfImages(pathFolderBasis, pathFolderImages, nORB, fC, KC, 
 #
 #pathFolderImages = pathFolderMain + os.sep + 'images' # USER DEFINED
 pathFolderPlanviews = pathFolderMain + os.sep + 'planviews' # USER DEFINED
-z0, ppm = 3.2, 2.0 # USER DEFINED
+z0, ppm = 3.2, 1.0 # USER DEFINED
 verbosePlot = True # USER DEFINED
 #
 print('Generation of planviews')
