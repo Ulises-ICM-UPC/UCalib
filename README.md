@@ -233,7 +233,7 @@ As a result, for each of the calibrated images `<image>.png` in folder **`images
 
 ## GCP check
 
-To verify the quality of the GCPs used in the manual calibration of the basis images, a RANSAC (RANdom SAmple Consensus) is performed. Points of the files `<basisImage>cdg.txt` located at the **`basis_check`** folder will be tested. The calibration of the points (minimun 6) is done assuming a _parabolic_ camera model and requires a minimum error `eCritical`. Set the folder and run the RANSAC algorithm:
+To verify the quality of the GCPs used in the manual calibration of the basis images, a RANSAC (RANdom SAmple Consensus) is performed. Points of the files `<basisImage>cdg.txt` located at the **`basis_check`** folder will be tested. The calibration of the points (minimum 6) is done assuming a _parabolic_ camera model and requires a minimum error `eCritical`. Set the folder and run the RANSAC algorithm:
 
 
 ```python
