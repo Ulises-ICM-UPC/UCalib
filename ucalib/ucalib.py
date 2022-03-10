@@ -336,11 +336,8 @@ def CheckGCPs(pathBasisCheck, errorCritical):
         print('... checking of {:}'.format(fnImage))
         #
         # load image information and dataBasic
-        if posFnImage == 0:
-            nr, nc = cv2.imread(pathBasisCheck + os.sep + fnImage).shape[0:2]
-            oca, ora = (nc-1)/2, (nr-1)/2
-        else:
-            assert cv2.imread(pathBasisCheck + os.sep + fnImage).shape[0:2] == (nr, nc)
+        nr, nc = cv2.imread(pathBasisCheck + os.sep + fnImage).shape[0:2]
+        oca, ora = (nc-1)/2, (nr-1)/2
         #
         # load GCPs
         pathCdgTxt = pathBasisCheck + os.sep + fnImage[0:fnImage.rfind('.')] + 'cdg.txt'
@@ -349,7 +346,9 @@ def CheckGCPs(pathBasisCheck, errorCritical):
         possGood = ulises.RANSACForGCPs(cs, rs, xs, ys, zs, oca, ora, eRANSAC, pRANSAC, ecRANSAC, NForRANSACMax, options={'nOfK1asa2':1000})[0]
         #
         # inform
-        if len(possGood) < len(cs):
+        if possGood is None:
+            print('... too few GCPs to be checked')
+        elif len(possGood) < len(cs):
             print('... re-run or consider to ignore the following GCPs')
             for pos in [item for item in range(len(cs)) if item not in possGood]:
                 c, r, x, y, z = [item[pos] for item in [cs, rs, xs, ys, zs]]
@@ -358,3 +357,4 @@ def CheckGCPs(pathBasisCheck, errorCritical):
             print('... all the GCPs for {:} are OK'.format(fnImage))
     #
     return None
+

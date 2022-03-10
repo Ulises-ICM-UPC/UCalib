@@ -1,5 +1,5 @@
 #
-# Thu Mar 10 11:57:14 2022, extract from Ulises by Gonzalo Simarro
+# Thu Mar 10 15:08:57 2022, extract from Ulises by Gonzalo Simarro
 #
 import cv2
 import copy
@@ -1372,6 +1372,8 @@ def R2UnitVectors(R): # 202109131100 # ***
     eu, ev, ef = R[0, :], R[1, :], R[2, :]
     return eu, ev, ef
 def RANSACForGCPs(cDs, rDs, xs, ys, zs, oca, ora, eRANSAC, pRANSAC, ecRANSAC, NForRANSACMax, options={}): # *** 
+    if len(cDs) < 6:
+        return None, None
     keys, defaultValues = ['nOfK1asa2'], [1000]
     options = CompleteADictionary(options, keys, defaultValues)
     dD2Max = np.max((cDs - oca) ** 2 + (rDs - ora) ** 2)
