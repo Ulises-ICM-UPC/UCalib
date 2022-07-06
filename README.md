@@ -125,7 +125,7 @@ The `parabolic` model is recommended by default, unless the images are highly di
 calibrationModel = 'parabolic'
 ```
 
-To facilitate the verification that the GCPs have been correctly selected in each image of the basis, images showing the GCPs and HPs (black), the reprojection of GCPs (yellow) and the horizon line (yellow) on the images can be generated. Set parameter `verbosePlot = True`, and to `False` otherwise. Images (`<basisImage>cal0_check.png`) will be placed on a TMP folder.
+To facilitate the verification that the GCPs have been correctly selected in each image of the basis, images showing the GCPs and HPs (black), the reprojection of GCPs (yellow) and the horizon line (yellow) on the images can be generated. Set parameter `verbosePlot = True`, and to `False` otherwise. Images (`<basisImage>cal0_check.png`) will be placed on a **`TMP`** folder.
 
 
 ```python
@@ -212,7 +212,7 @@ pathFolderPlanviews = pathFolderMain + os.sep + 'planviews'
 z0 = 3.2
 ```
 
-The resolution of the planviews is fixed by the pixels-per-meter established in the parameter `ppm`. To help verifying that the points for setting the planview are correctly placed, it is possible to show such points on the frames and on the planviews. Set the parameter `verbosePlot = True`, and to `False` otherwise. The images (`<image>_checkplw.png` and `<image>plw_check.png`) will be placed in a TMP folder.
+The resolution of the planviews is fixed by the pixels-per-meter established in the parameter `ppm`. To help verifying that the points for setting the planview are correctly placed, it is possible to show such points on the frames and on the planviews. Set the parameter `verbosePlot = True`, and to `False` otherwise. The images (`<image>_checkplw.png` and `<image>plw_check.png`) will be placed in a **`TMP`** folder.
 
 
 ```python
