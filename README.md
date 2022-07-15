@@ -1,4 +1,3 @@
-
 # UCalib
 
 `UCalib` is an open source software written in Python for automatic image calibration from a set of images that are manually calibrated.
@@ -68,7 +67,7 @@ The local modules of `UCalib` are located in the **`ucalib`** folder.
 To run the demo in the folder **`example`** with the basis of images in **`basis`** and the images in **`images`** using a Jupyter Notebook we provide the file `example_notebook.ipynb`. For experienced users, the `example.py` file can be run in a terminal. `UCalib` handles `PNG` (recommended) and `JPEG` image formats.
 
 ## Basis calibration
-To manually calibrate the images selected for the basis, placed in the folder **`basis`**,  it is necessary that each image `<basisImage>.png` is supplied with a file containing the Ground Control Points (GCP) and, optionally, the Horizon Points (HP). The structure of each of these files is the following:
+To manually calibrate the images selected for the basis, placed in the folder **`basis`**,  it is necessary that each image `<basisImage>.png` is supplied with a file containing the Ground Control Points (GCP) and, optionally, a file with the Horizon Points (HP). The structure of each of these files is the following:
 * `<basisImage>cdg.txt`: For each GCP one line with  (minimum 6)
 >`pixel-column`, `pixel-row`, `x-coordinate`, `y-coordinate`, `z-coordinate`
 * `<basisImage>cdh.txt`: For each HP one line with (minimum 3)
@@ -157,7 +156,7 @@ As a result of the calibration, the calibration file `<basisImage>cal.txt` is ge
 | Lens radial distortion (parabolic, quartic) | `k1a`, `k2a` | _-_ |
 | Lens tangential distortion (parabolic, quartic) | `p1a`, `p2a` | _-_ |
 | Pixel size | `sc`, `sr` | _-_ |
-| Decentering | `oc`, `rr` | _pixel_ |
+| Decentering | `oc`, `or` | _pixel_ |
 | Image size | `nc`, `nr` | _pixel_ |
 | Calibration error | `errorT`| _pixel_ |
 
