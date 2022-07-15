@@ -7,6 +7,7 @@ import numpy as np
 import os
 from scipy import optimize
 import shutil
+import sys
 #
 import ulises_ucalib as ulises
 #
@@ -16,7 +17,7 @@ def CalibrationOfBasisImages(pathBasis, errorTCritical, model, verbosePlot):
     model2SelectedVariablesKeys = {'parabolic':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'sca'], 'quartic':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'sca'], 'full':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or']}
     if model not in model2SelectedVariablesKeys.keys():
         print('*** Invalid calibration model {:}'.format(model))
-        print('*** Choose one of the following calibration models: {:}'.format(list(model2SelectedVariablesKeys.keys()))); exit()
+        print('*** Choose one of the following calibration models: {:}'.format(list(model2SelectedVariablesKeys.keys()))); sys.exit()
     #
     # obtain calibrations
     fnsImages = sorted([item for item in os.listdir(pathBasis) if '.' in item and item[item.rfind('.')+1:] in ['jpeg', 'JPEG', 'jpg', 'JPG', 'png', 'PNG']])
@@ -81,7 +82,7 @@ def CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathBasis, model, verbosePlo
     model2SelectedVariablesKeys = {'parabolic':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'sca'], 'quartic':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'sca'], 'full':['xc', 'yc', 'zc', 'ph', 'sg', 'ta', 'k1a', 'k2a', 'p1a', 'p2a', 'sca', 'sra', 'oc', 'or']}
     if model not in model2SelectedVariablesKeys.keys():
         print('*** Invalid calibration model {:}'.format(model))
-        print('*** Choose one of the following calibration models: {:}'.format(list(model2SelectedVariablesKeys.keys()))); exit()
+        print('*** Choose one of the following calibration models: {:}'.format(list(model2SelectedVariablesKeys.keys()))); sys.exit()
     #
     # load basis information
     ncs, nrs, css, rss, xss, yss, zss, chss, rhss, allVariabless, mainSets, errorTs, fnsImages = [[] for item in range(13)]
@@ -122,7 +123,7 @@ def CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathBasis, model, verbosePlo
     #
     # obtain calibrations and write pathCalTxts forcing unique xc, yc, zc and intrinsic
     if len(fnsImages) == 0:
-        print('*** no initial calibrations available'); exit()
+        print('*** no initial calibrations available'); sys.exit()
     elif len(fnsImages) == 1:
         pathCal0Txt = pathBasis + os.sep + fnsImages[0][0:fnsImages[0].rfind('.')] + 'cal0.txt'
         pathCalTxt = pathBasis + os.sep + fnsImages[0][0:fnsImages[0].rfind('.')] + 'cal.txt'
@@ -274,9 +275,9 @@ def PlanviewsFromImages(pathImages, pathPlanviews, z0, ppm, verbosePlot):
     #
     # obtain the planview domain from the cloud of points
     if not os.path.exists(pathPlanviews):
-        print('*** folder {:} not found'.format(pathPlanviews)); exit()
+        print('*** folder {:} not found'.format(pathPlanviews)); sys.exit()
     if not os.path.exists(pathPlanviews + os.sep + 'xy_planview.txt'):
-        print('*** file xy_planview.txt not found in {:}'.format(pathPlanviews)); exit()
+        print('*** file xy_planview.txt not found in {:}'.format(pathPlanviews)); sys.exit()
     rawData = np.asarray(ulises.ReadRectangleFromTxt(pathPlanviews + os.sep + 'xy_planview.txt', options={'c1':2, 'valueType':'float'}))
     xsCloud, ysCloud = rawData[:, 0], rawData[:, 1]
     angle, xUL, yUL, H, W = ulises.Cloud2Rectangle(xsCloud, ysCloud)
