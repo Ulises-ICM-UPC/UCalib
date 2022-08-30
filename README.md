@@ -50,7 +50,7 @@ The structure of the project is the following:
     * `image000001cal.txt`
     * . . .
   * **`planviews`**
-    * `crxyz_planviews.txt`
+    * `crxyz_planview.txt`
     * `xy_planview.txt`
     * `image000001plw.png`
     * . . .
