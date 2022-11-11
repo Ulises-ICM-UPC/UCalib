@@ -93,7 +93,7 @@ Set the main path and the path where the basis is located:
 
 ```python
 pathFolderMain = 'example'
-pathFolderBasis = pathFolderMain + os.sep + 'basis'
+pathFolderBasis = os.path.join(pathFolderMain, 'basis')
 ```
 
 Set the value of maximum error allowed for the basis calibration:
@@ -124,6 +124,13 @@ The `parabolic` model is recommended by default, unless the images are highly di
 calibrationModel = 'parabolic'
 ```
 
+In case certain variables of the calibration model (see table below) are to be fixed, the values have to be provided in the `givenVariablesDict` dictionary. For a full calibration, the dictionary has to be left empty, i.e. `givenVariablesDict = {}`.
+
+
+```python
+givenVariablesDict = {'zc':142.5, 'k1a':-0.0025}
+```
+
 To facilitate the verification that the GCPs have been correctly selected in each image of the basis, images showing the GCPs and HPs (black), the reprojection of GCPs (yellow) and the horizon line (yellow) on the images can be generated. Set parameter `verbosePlot = True`, and to `False` otherwise. Images (`<basisImage>cal0_check.png`) will be placed on a **`TMP`** folder.
 
 
@@ -135,7 +142,7 @@ Run the initial calibration algorithm for each image of the basis:
 
 
 ```python
-ucalib.CalibrationOfBasisImages(pathFolderBasis, eCritical, calibrationModel, verbosePlot)
+ucalib.CalibrationOfBasisImages(pathFolderBasis, eCritical, calibrationModel, givenVariablesDict, verbosePlot)
 ```
 
 In case that the reprojection error of a GCP is higher than the error `eCritical` for a certain image `<basisImage>`, a message will appear suggesting to re-run the calibration of the basis or to modify the values or to delete points in the file `<basisImage>cdg.txt`. If the calibration error of an image exceeds the error `eCritical` the calibration is given as _failed_. Consider re-run the calibration of the basis or verify the GPCs and HPs.
@@ -144,7 +151,7 @@ Then, run the algorithm to obtain the position and the optimal intrinsic paramet
 
 
 ```python
-ucalib.CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathFolderBasis, calibrationModel, verbosePlot)
+ucalib.CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathFolderBasis, calibrationModel, givenVariablesDict, verbosePlot)
 ```
 
 As a result of the calibration, the calibration file `<basisImage>cal.txt` is generated in the **`basis`** directory for each of the images. This file contains the following parameters:
@@ -164,11 +171,12 @@ The different calibration files `<basisImage>cal.txt` differ only in the angles 
 
 ## Automatic image calibration
 
-In this second step, each of the images in the folder **`images`** will be automatically calibrated. Set the folder path where images to calibrate automatically are stored. To facilitate the verification of the calibration of each image, images showing the reprojection of the GCPs and the horizon line can be generated. Set parameter `verbosePlot = True`, and to `False` otherwise. Images(`<images>cal_check.png`) will be placed on a **`TMP`** folder.
+In this second step, each of the images in the folder **`images`** will be automatically calibrated. Set the folder path where images to calibrate automatically are stored. To facilitate the verification of the calibration of each image, images showing the reprojection of the GCPs and the horizon line can be generated. Set parameter `verbosePlot = True`, and to `False` otherwise. Images(`<images>cal_check.png`) will be placed on a **`TMP`** folder. In the case that the images in the folder **`images`** have already been calibrated, set `overwrite = True` to generate them again and to `False` otherwise. 
 
 
 ```python
-pathFolderImages = pathFolderMain + os.sep + 'images'
+pathFolderImages = os.path.join(pathFolderMain, 'images')
+overwrite = False
 verbosePlot = True
 ```
 
@@ -190,7 +198,7 @@ Run the algorithm to calibrate images automatically:
 
 
 ```python
-ucalib.AutoCalibrationOfImages(pathFolderBasis, pathFolderImages, nORB, fC, KC, verbosePlot)
+ucalib.AutoCalibrationOfImages(pathFolderBasis, pathFolderImages, nORB, fC, KC, overwrite, verbosePlot)
 ```
 
 For each of the images `<image>.png` in directory **`images`**, a calibration file `<image>cal.txt` with the same characteristics as the one described above will be obtained. The autocalibration process may fail because the homography error is higher than the one set by the parameter `fC`, the number of pairs is lower than the critical value `KC` or `ORB` not being able to identify pairs in the image. In any of these cases it is reported that the calibration of the image  `<image>.png` has _failed_.
@@ -207,15 +215,16 @@ Set the folder path where the file `xy_planview.txt` is located and the value of
 
 
 ```python
-pathFolderPlanviews = pathFolderMain + os.sep + 'planviews'
+pathFolderPlanviews = os.path.join(pathFolderMain, 'planviews')
 z0 = 3.2
 ```
 
-The resolution of the planviews is fixed by the pixels-per-meter established in the parameter `ppm`. To help verifying that the points for setting the planview are correctly placed, it is possible to show such points on the frames and on the planviews. Set the parameter `verbosePlot = True`, and to `False` otherwise. The images (`<image>_checkplw.png` and `<image>plw_check.png`) will be placed in a **`TMP`** folder.
+The resolution of the planviews is fixed by the pixels-per-meter established in the parameter `ppm`. To help verifying that the points for setting the planview are correctly placed, it is possible to show such points on the frames and on the planviews. Set the parameter `verbosePlot = True`, and to `False` otherwise. The images (`<image>_checkplw.png` and `<image>plw_check.png`) will be placed in a **`TMP`** folder. In the case that planviews have already been generated, set `overwrite = True` to generate them again and to `False` otherwise. 
 
 
 ```python
 ppm = 2.0
+overwrite = False
 verbosePlot = True
 ```
 
@@ -223,7 +232,7 @@ Run the algorithm to generate the planviews:
 
 
 ```python
-ucalib.PlanviewsFromImages(pathFolderImages, pathFolderPlanviews, z0, ppm, verbosePlot)
+ucalib.PlanviewsFromImages(pathFolderImages, pathFolderPlanviews, z0, ppm, overwrite, verbosePlot)
 ```
 
 As a result, for each of the calibrated images `<image>.png` in folder **`images`**, a planview `<image>plw.png` will be placed in the folder **`planviews`**. Note that objects outside the plane at height `z0` will show apparent displacements due to real camera movement. In the same folder, the file `crxyz_planview.txt` will be located, containing the coordinates of the corner of the planviews images:
@@ -236,7 +245,7 @@ To verify the quality of the GCPs used in the manual calibration of the basis im
 
 
 ```python
-pathFolderBasisCheck = pathFolderMain + os.sep + 'basis_check'
+pathFolderBasisCheck = os.path.join(pathFolderMain, 'basis_check')
 ucalib.CheckGCPs(pathFolderBasisCheck, eCritical)
 ```
 

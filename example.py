@@ -8,52 +8,57 @@ import sys
 sys.path.insert(0, 'ucalib')
 import ucalib as ucalib
 #
-pathFolderMain = 'example' # USER DEFINED
+pathFolderMain = 'example'
 assert os.path.exists(pathFolderMain)
+#
 #
 #''' --------------------------------------------------------------------------
 # Calibration of the basis
 #''' --------------------------------------------------------------------------
 #
-pathFolderBasis = pathFolderMain + os.sep + 'basis' # USER DEFINED
-eCritical, calibrationModel = 5., 'parabolic' # USER DEFINED (eCritical is in pixels, calibrationModel = 'parabolic', 'quartic' or 'full')
-verbosePlot = True # USER DEFINED
+pathFolderBasis = os.path.join(pathFolderMain, 'basis')
+eCritical, calibrationModel = 5., 'parabolic' # eCritical expressed in pixels, calibrationModel in ['parabolic', 'quartic', 'full']
+#givenVariablesDict = {}
+givenVariablesDict = {'zc':142.5, 'k1a':-0.0025}
+verbosePlot = True
 #
 print('Calibration of the basis')
-ucalib.CalibrationOfBasisImages(pathFolderBasis, eCritical, calibrationModel, verbosePlot)
+ucalib.CalibrationOfBasisImages(pathFolderBasis, eCritical, calibrationModel, givenVariablesDict, verbosePlot)
 print('Calibration of the basis forcing a unique camera position and intrinsic parameters')
-ucalib.CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathFolderBasis, calibrationModel, verbosePlot)
+ucalib.CalibrationOfBasisImagesConstantXYZAndIntrinsic(pathFolderBasis, calibrationModel, givenVariablesDict, verbosePlot)
 #
 #''' --------------------------------------------------------------------------
 # (Auto)Calibration of the images
 #''' --------------------------------------------------------------------------
 #
-#pathFolderBasis = pathFolderMain + os.sep + 'basis' # USER DEFINED
-pathFolderImages = pathFolderMain + os.sep + 'images' # USER DEFINED
-verbosePlot = True # USER DEFINED
-nORB, fC, KC = 10000, 5., 4 # USER DEFINED
+#pathFolderBasis = os.path.join(pathFolderMain, 'basis')
+pathFolderImages = os.path.join(pathFolderMain, 'images')
+overwrite = False
+verbosePlot = True
+nORB, fC, KC = 10000, 5., 4
 #
 print('Autocalibration of the images')
-ucalib.AutoCalibrationOfImages(pathFolderBasis, pathFolderImages, nORB, fC, KC, verbosePlot)
+ucalib.AutoCalibrationOfImages(pathFolderBasis, pathFolderImages, nORB, fC, KC, overwrite, verbosePlot)
 #
 #''' --------------------------------------------------------------------------
 # Plot planviews
 #''' --------------------------------------------------------------------------
 #
-#pathFolderImages = pathFolderMain + os.sep + 'images' # USER DEFINED
-pathFolderPlanviews = pathFolderMain + os.sep + 'planviews' # USER DEFINED
-z0, ppm = 3.2, 1.0 # USER DEFINED
-verbosePlot = True # USER DEFINED
+#pathFolderImages = os.path.join(pathFolderMain, 'images')
+pathFolderPlanviews = os.path.join(pathFolderMain, 'planviews')
+z0, ppm = 3.2, 2.0
+overwrite = False
+verbosePlot = True
 #
 print('Generation of planviews')
-ucalib.PlanviewsFromImages(pathFolderImages, pathFolderPlanviews, z0, ppm, verbosePlot)
+ucalib.PlanviewsFromImages(pathFolderImages, pathFolderPlanviews, z0, ppm, overwrite, verbosePlot)
 #
 #''' --------------------------------------------------------------------------
 # check basis images
 #''' --------------------------------------------------------------------------
 #
-pathFolderBasisCheck = pathFolderMain + os.sep + 'basis_check' # USER DEFINED
-#eCritical = 5. # USER DEFINED (eCritical is in pixels)
+pathFolderBasisCheck = os.path.join(pathFolderMain, 'basis_check')
+eCritical = 5. # eCritical expressed in pixels
 #
 print('Checking of the basis')
 ucalib.CheckGCPs(pathFolderBasisCheck, eCritical)
